@@ -30,21 +30,18 @@ export default function Dashboard({ user: propUser }) {
     fetchElections();
   }, []);
 
-  // Confirm vote
   const confirmVote = async () => {
     if (!selectedCandidate || !selectedPosition) return;
 
     try {
       setVoting(true);
-
       await API.post(
         `/votes/cast/${selectedPosition.id}/${selectedCandidate.id}/`
       );
-
       alert(`Vote recorded for ${selectedCandidate.name}`);
-
       setShowModal(false);
 
+      // Refresh elections to update voting status
       const res = await API.get("/elections/");
       setElections(res.data);
     } catch (err) {
@@ -54,219 +51,193 @@ export default function Dashboard({ user: propUser }) {
     }
   };
 
-  if (!user) return <p>Please login.</p>;
-  if (loading) return <p>Loading elections...</p>;
+  if (!user) return <p className="text-center mt-10">Please login.</p>;
+
+  if (loading) {
+    return (
+      <div>
+        <Navbar user={user} />
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-8">
+            <div className="h-8 bg-gray-200 rounded w-64 mx-auto"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+                  <div className="h-24 bg-gray-200 rounded-full w-24 mx-auto"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* NAVBAR */}
       <Navbar user={user} />
 
-      {/* DASHBOARD CONTAINER */}
-      <div style={{ maxWidth: "1000px", margin: "40px auto", padding: "20px" }}>
-        <h1 style={{ textAlign: "center" }}>🗳 Election Ballot</h1>
+      <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">
+          🗳 Election Ballot
+        </h1>
 
-        {elections.map((election) => (
-          <div key={election.id} style={{ marginBottom: "40px" }}>
-            <h2>{election.title}</h2>
-            <p>{election.description}</p>
-
-            {election.positions.map((position) => (
-              <div key={position.id} style={{ marginTop: "25px" }}>
-                <h3>
-                  {position.title}{" "}
-                  {position.has_voted && (
-                    <span style={{ color: "green", fontSize: "14px" }}>
-                      ✓ You voted
-                    </span>
-                  )}
-                </h3>
-
-                {/* CANDIDATE GRID */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "20px",
-                    marginTop: "15px",
-                  }}
-                >
-                  {position.candidates.map((candidate) => (
-                    <div
-                      key={candidate.id}
-                      style={{
-                        border: "1px solid #ddd",
-                        borderRadius: "10px",
-                        padding: "15px",
-                        textAlign: "center",
-                        background: "#fff",
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                      }}
-                    >
-                      <img
-                        src={candidate.image_url}
-                        alt={candidate.name}
-                        style={{
-                          width: "90px",
-                          height: "90px",
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          marginBottom: "10px",
-                        }}
-                      />
-
-                      <h4 style={{ marginBottom: "6px" }}>{candidate.name}</h4>
-
-                      {/* PARTY */}
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          fontSize: "14px",
-                          color: "#555",
-                          marginBottom: "12px",
-                        }}
-                      >
-                        <img
-                          src={candidate.party.badge_url}
-                          alt={candidate.party.name}
-                          style={{
-                            width: "20px",
-                            height: "20px",
-                            marginRight: "6px",
-                          }}
-                        />
-                        {candidate.party.name} (
-                        {candidate.party.abbreviation})
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setSelectedCandidate(candidate);
-                          setSelectedPosition(position);
-                          setShowModal(true);
-                        }}
-                        disabled={!position.can_vote || voting}
-                        style={{
-                          background: position.can_vote
-                            ? "#007bff"
-                            : "#6c757d",
-                          color: "white",
-                          border: "none",
-                          padding: "8px 14px",
-                          borderRadius: "6px",
-                          cursor: position.can_vote
-                            ? "pointer"
-                            : "not-allowed",
-                          width: "100%",
-                        }}
-                      >
-                        {position.can_vote ? "Vote" : "Vote Cast"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {/* CONFIRMATION MODAL */}
-        {showModal && selectedCandidate && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.6)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 1000,
-            }}
-          >
-            <div
-              style={{
-                background: "white",
-                padding: "25px",
-                borderRadius: "10px",
-                width: "350px",
-                textAlign: "center",
-              }}
+        <div className="space-y-10">
+          {elections.map((election) => (
+            <section
+              key={election.id}
+              className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100"
             >
-              <h3>Confirm Your Vote</h3>
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {election.title}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">{election.description}</p>
+              </div>
 
+              <div className="p-6 space-y-8">
+                {election.positions.map((position) => (
+                  <div key={position.id}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {position.title}
+                      </h3>
+                      {position.has_voted && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          ✓ You voted
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Candidate grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {position.candidates.map((candidate) => (
+                        <div
+                          key={candidate.id}
+                          className="bg-white border border-gray-200 rounded-xl p-6 text-center hover:shadow-md transition-shadow"
+                        >
+                          <img
+                            src={candidate.image_url}
+                            alt={candidate.name}
+                            className="w-24 h-24 rounded-full mx-auto object-cover border-2 border-gray-100"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "https://via.placeholder.com/96?text=?"; // fallback
+                            }}
+                          />
+
+                          <h4 className="font-semibold text-gray-900 mt-4">
+                            {candidate.name}
+                          </h4>
+
+                          {/* Party info */}
+                          <div className="flex items-center justify-center gap-1 mt-2 text-sm text-gray-600">
+                            <img
+                              src={candidate.party.badge_url}
+                              alt={candidate.party.name}
+                              className="w-5 h-5 object-contain"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = "none"; // hide if missing
+                              }}
+                            />
+                            <span>
+                              {candidate.party.name} ({candidate.party.abbreviation})
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              setSelectedCandidate(candidate);
+                              setSelectedPosition(position);
+                              setShowModal(true);
+                            }}
+                            disabled={!position.can_vote || voting}
+                            className={`mt-4 w-full py-2 px-4 rounded-lg font-medium transition ${
+                              position.can_vote
+                                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                            }`}
+                          >
+                            {position.can_vote ? "Vote" : "Vote Cast"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      {showModal && selectedCandidate && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-center mb-4">Confirm Your Vote</h3>
+
+            <div className="text-center">
               <img
                 src={selectedCandidate.image_url}
                 alt={selectedCandidate.name}
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  margin: "10px 0",
+                className="w-24 h-24 rounded-full mx-auto object-cover border-2 border-gray-200"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://via.placeholder.com/96?text=?";
                 }}
               />
 
-              <h4>{selectedCandidate.name}</h4>
+              <h4 className="font-semibold text-lg mt-2">{selectedCandidate.name}</h4>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginBottom: "10px",
-                }}
-              >
+              <div className="flex items-center justify-center gap-2 mt-1 text-gray-600">
                 <img
                   src={selectedCandidate.party.badge_url}
                   alt={selectedCandidate.party.name}
-                  style={{ width: "20px", marginRight: "6px" }}
+                  className="w-5 h-5 object-contain"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.style.display = "none";
+                  }}
                 />
-                {selectedCandidate.party.name} (
-                {selectedCandidate.party.abbreviation})
+                <span>
+                  {selectedCandidate.party.name} ({selectedCandidate.party.abbreviation})
+                </span>
               </div>
 
-              <p style={{ fontSize: "14px", color: "#555" }}>
-                You are voting for <strong>{selectedCandidate.name}</strong> for{" "}
-                <strong>{selectedPosition.title}</strong>.
+              <p className="text-sm text-gray-500 mt-4">
+                You are voting for <span className="font-medium">{selectedCandidate.name}</span>{" "}
+                for <span className="font-medium">{selectedPosition.title}</span>.
               </p>
 
-              <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   onClick={() => setShowModal(false)}
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    borderRadius: "5px",
-                    border: "1px solid #ccc",
-                    background: "#f1f1f1",
-                  }}
+                  className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
                 >
                   Cancel
                 </button>
-
                 <button
                   onClick={confirmVote}
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    borderRadius: "5px",
-                    border: "none",
-                    background: "#28a745",
-                    color: "white",
-                  }}
+                  disabled={voting}
+                  className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50"
                 >
-                  Confirm Vote
+                  {voting ? "Confirming..." : "Confirm Vote"}
                 </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
