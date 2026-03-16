@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Kenyan flag stripes: Black, White, Red, White, Green */
+.bg-kenya-flag {
+  background-image: linear-gradient(
+    to right,
+    #000000 20%,
+    #ffffff 22%,
+    #ff0000 48%,
+    #ffffff 50%,
+    #008000 78%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-down {
+  animation: fadeInDown 0.3s ease-out;
+}
+
+/* Animation for sliding effect inside text */
+@keyframes flagSlide {
+  0% { background-position: 0% 0%; }
+  100% { background-position: -100% 0%; }
+}
+
+.animate-flag {
+  animation: flagSlide 6s linear infinite;
+}
+
+/* Kenyan flag stripes: Black, White, Red, White, Green */
+.bg-kenya-flag {
+  background-image: linear-gradient(
+    to right,
+    #000000 20%,
+    #ffffff 22%,
+    #ff0000 48%,
+    #ffffff 50%,
+    #008000 78%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Animation for sliding effect */
+@keyframes flagSlide {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 0%; }
+}
+
+.animate-flag {
+  animation: flagSlide 5s linear infinite;
+}
