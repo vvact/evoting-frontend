@@ -1,16 +1,111 @@
-# React + Vite
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Download README</title>
+</head>
+<body>
+<h2>🗳 eVoting System Frontend - Download README</h2>
+<p>Click the link below to download the README.md directly:</p>
+<a id="downloadLink" href="#" download="README.md" style="padding:10px 15px; background:#007bff; color:white; text-decoration:none; border-radius:5px;">Download README.md</a>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<script>
+const readmeContent = `
+# 🗳 eVoting System (Frontend)
 
-Currently, two official plugins are available:
+This is the **frontend** for the eVoting System, built with **React**. It allows users to register, log in, vote for candidates, and view election results with live vote counts and percentage bars.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **User Authentication**
+  - Registration
+  - Login
+  - Email verification (OTP)
+  - JWT-based access
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Election Dashboard**
+  - List of active elections
+  - Candidate cards with photos, party, and description
+  - Vote confirmation modal to prevent accidental voting
 
-## Expanding the ESLint configuration
+- **Results Page**
+  - Real-time vote counts
+  - Vote percentage bars per candidate
+  - Party-colored bars for DP, NUF, IP, etc.
+  - Party badges/logos next to bars
+  - Back button to return to the dashboard
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **SPA Navigation**
+  - Fully React Router powered
+  - Navbar with links to Ballot and Results
+  - Smooth transitions without full page reloads
+
+- **UI Enhancements**
+  - Candidate and party images
+  - Responsive card grid
+  - Styled buttons and modals
+  - Mobile-friendly
+
+## Tech Stack
+
+- React (Functional Components + Hooks)
+- React Router v6
+- Axios for API calls
+- CSS-in-JS inline styling
+
+## File Structure (Frontend)
+
+\`\`\`
+src/
+├─ components/
+│  ├─ Navbar.js
+├─ pages/
+│  ├─ Landing.js
+│  ├─ Login.js
+│  ├─ Register.js
+│  ├─ Verify.js
+│  ├─ Dashboard.js
+│  ├─ Results.js
+├─ api.js
+├─ App.js
+\`\`\`
+
+## How to Run
+
+1. Clone the repository:
+\`\`\`bash
+git clone <your-repo-url>
+\`\`\`
+
+2. Install dependencies:
+\`\`\`bash
+npm install
+\`\`\`
+
+3. Start the development server:
+\`\`\`bash
+npm start
+\`\`\`
+
+4. Open your browser at `http://localhost:3000`
+
+## Notes
+
+- Ensure the backend API is running at `http://localhost:8000`
+- Update `api.js` base URL if necessary
+- Make sure CORS is enabled in your backend for localhost
+
+## License
+
+MIT License © 2026
+`;
+
+// Create a Blob for the README content
+const blob = new Blob([readmeContent], { type: "text/markdown" });
+const url = URL.createObjectURL(blob);
+
+// Set the href of the link
+document.getElementById("downloadLink").href = url;
+</script>
+</body>
+</html>
