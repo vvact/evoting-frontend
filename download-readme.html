@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Download README</title>
+</head>
+<body>
+<h2>🗳 eVoting System Frontend - Download README</h2>
+<p>Click the link below to download the README.md directly:</p>
+<a id="downloadLink" href="#" download="README.md" style="padding:10px 15px; background:#007bff; color:white; text-decoration:none; border-radius:5px;">Download README.md</a>
+
+<script>
+const readmeContent = `
+# 🗳 eVoting System (Frontend)
+
+This is the **frontend** for the eVoting System, built with **React**. It allows users to register, log in, vote for candidates, and view election results with live vote counts and percentage bars.
+
+## Features
+
+- **User Authentication**
+  - Registration
+  - Login
+  - Email verification (OTP)
+  - JWT-based access
+
+- **Election Dashboard**
+  - List of active elections
+  - Candidate cards with photos, party, and description
+  - Vote confirmation modal to prevent accidental voting
+
+- **Results Page**
+  - Real-time vote counts
+  - Vote percentage bars per candidate
+  - Party-colored bars for DP, NUF, IP, etc.
+  - Party badges/logos next to bars
+  - Back button to return to the dashboard
+
+- **SPA Navigation**
+  - Fully React Router powered
+  - Navbar with links to Ballot and Results
+  - Smooth transitions without full page reloads
+
+- **UI Enhancements**
+  - Candidate and party images
+  - Responsive card grid
+  - Styled buttons and modals
+  - Mobile-friendly
+
+## Tech Stack
+
+- React (Functional Components + Hooks)
+- React Router v6
+- Axios for API calls
+- CSS-in-JS inline styling
+
+## File Structure (Frontend)
+
+\`\`\`
+src/
+├─ components/
+│  ├─ Navbar.js
+├─ pages/
+│  ├─ Landing.js
+│  ├─ Login.js
+│  ├─ Register.js
+│  ├─ Verify.js
+│  ├─ Dashboard.js
+│  ├─ Results.js
+├─ api.js
+├─ App.js
+\`\`\`
+
+## How to Run
+
+1. Clone the repository:
+\`\`\`bash
+git clone <your-repo-url>
+\`\`\`
+
+2. Install dependencies:
+\`\`\`bash
+npm install
+\`\`\`
+
+3. Start the development server:
+\`\`\`bash
+npm start
+\`\`\`
+
+4. Open your browser at `http://localhost:3000`
+
+## Notes
+
+- Ensure the backend API is running at `http://localhost:8000`
+- Update `api.js` base URL if necessary
+- Make sure CORS is enabled in your backend for localhost
+
+## License
+
+MIT License © 2026
+`;
+
+// Create a Blob for the README content
+const blob = new Blob([readmeContent], { type: "text/markdown" });
+const url = URL.createObjectURL(blob);
+
+// Set the href of the link
+document.getElementById("downloadLink").href = url;
+</script>
+</body>
+</html>
