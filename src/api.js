@@ -6,9 +6,9 @@ import axios from "axios";
 // ------------------------------
 
 // Use REACT_APP_API_URL if defined; fallback to localhost
-const BASE_URL = typeof process !== "undefined" 
-  ? process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api/"
-  : "http://127.0.0.1:8000/api/";
+const BASE_URL =
+  (typeof process !== "undefined" && process.env.REACT_APP_API_URL) ||
+  "http://127.0.0.1:8000/api/";
 
 // ------------------------------
 // Authenticated API (for private endpoints)
@@ -17,6 +17,7 @@ const API = axios.create({
   baseURL: BASE_URL,
 });
 
+// Automatically attach JWT if it exists
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("access");
   if (token) config.headers["Authorization"] = `Bearer ${token}`;
@@ -34,12 +35,12 @@ const PublicAPI = axios.create({
 // Auth / User API
 // ------------------------------
 
-// Use PublicAPI for endpoints that don’t require auth
+// Public endpoints (no token)
 export const registerUser = (data) => PublicAPI.post("register/", data);
 export const verifyOTP = (data) => PublicAPI.post("verify-otp/", data);
 export const resendOTP = (data) => PublicAPI.post("resend-otp/", data);
 
-// Login attaches JWT after successful authentication
+// Login: attach JWT after authentication
 export const loginUser = async (data) => {
   const res = await PublicAPI.post("login/", data);
 
@@ -57,12 +58,14 @@ export const logoutUser = () => {
   localStorage.removeItem("user");
 };
 
-// Optional: Authenticated GET/POST/PUT/DELETE (use API instance)
+// Optional: Authenticated GET/POST/PUT/DELETE
 export const getData = async (url) => API.get(url);
 export const postData = async (url, data) => API.post(url, data);
 export const putData = async (url, data) => API.put(url, data);
 export const deleteData = async (url) => API.delete(url);
 
+// ------------------------------
 // Exports
+// ------------------------------
 export { API, PublicAPI };
 export default API;
