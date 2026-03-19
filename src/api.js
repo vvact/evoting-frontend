@@ -2,10 +2,19 @@
 import axios from "axios";
 
 // ------------------------------
+// Base URL from environment
+// ------------------------------
+
+// Use REACT_APP_API_URL if defined; fallback to localhost
+const BASE_URL = typeof process !== "undefined" 
+  ? process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api/"
+  : "http://127.0.0.1:8000/api/";
+
+// ------------------------------
 // Authenticated API (for private endpoints)
 // ------------------------------
 const API = axios.create({
-  baseURL: "http://127.0.0.1:8000/api/",
+  baseURL: BASE_URL,
 });
 
 API.interceptors.request.use((config) => {
@@ -18,7 +27,7 @@ API.interceptors.request.use((config) => {
 // Public API (no JWT attached)
 // ------------------------------
 const PublicAPI = axios.create({
-  baseURL: "http://127.0.0.1:8000/api/",
+  baseURL: BASE_URL,
 });
 
 // ------------------------------
