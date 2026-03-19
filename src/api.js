@@ -5,19 +5,17 @@ import axios from "axios";
 // Base URL from environment
 // ------------------------------
 
-// Use REACT_APP_API_URL if defined; fallback to localhost
-const BASE_URL =
-  (typeof process !== "undefined" && process.env.REACT_APP_API_URL) ||
-  "http://127.0.0.1:8000/api/";
+// Use only production Render URL
+const BASE_URL = "https://evoting-system-ozkc.onrender.com/api/";
 
 // ------------------------------
 // Authenticated API (for private endpoints)
 // ------------------------------
 const API = axios.create({
   baseURL: BASE_URL,
+  withCredentials: true, // optional if you use cookies
 });
 
-// Automatically attach JWT if it exists
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("access");
   if (token) config.headers["Authorization"] = `Bearer ${token}`;
@@ -29,6 +27,7 @@ API.interceptors.request.use((config) => {
 // ------------------------------
 const PublicAPI = axios.create({
   baseURL: BASE_URL,
+  withCredentials: true,
 });
 
 // ------------------------------
