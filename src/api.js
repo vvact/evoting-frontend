@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useLoader } from "./contexts/LoaderContext"; // ✅ Import the loader hook
+import { useLoader } from "./contexts/LoaderContext";
 import { useRef } from "react";
 
 // ------------------------------
@@ -34,8 +34,6 @@ const PublicAPI = axios.create({
 // ------------------------------
 export function useApi() {
   const { showLoader, hideLoader } = useLoader();
-
-  // Prevent double-hide if multiple requests finish simultaneously
   const activeCount = useRef(0);
 
   const call = async (axiosConfig) => {
@@ -60,13 +58,16 @@ export function useApi() {
 // Auth / User API
 // ------------------------------
 
-// Public endpoints
-export const registerUser = (data) => PublicAPI.post("register/", data);
-export const verifyOTP = (data) => PublicAPI.post("verify-otp/", data);
-export const resendOTP = (data) => PublicAPI.post("resend-otp/", data);
+// Public endpoints (return only data)
+export const registerUser = async (data) => (await PublicAPI.post("register/", data)).data;
+export const verifyOTP = async (data) => (await PublicAPI.post("verify-otp/", data)).data;
+export const resendOTP = async (data) => (await PublicAPI.post("resend-otp/", data)).data;
 
-// Login: now you can use useApi() in components to trigger loader
-export const loginUser = (data) => PublicAPI.post("login/", data);
+// Login: return only res.data
+export const loginUser = async (data) => {
+  const res = await PublicAPI.post("login/", data);
+  return res.data; // { access, refresh, user }
+};
 
 // Logout
 export const logoutUser = () => {
@@ -75,7 +76,7 @@ export const logoutUser = () => {
   localStorage.removeItem("user");
 };
 
-// Optional: Authenticated GET/POST/PUT/DELETE (use useApi() to trigger loader)
+// Optional: Authenticated GET/POST/PUT/DELETE
 export const getData = (url) => API.get(url);
 export const postData = (url, data) => API.post(url, data);
 export const putData = (url, data) => API.put(url, data);
