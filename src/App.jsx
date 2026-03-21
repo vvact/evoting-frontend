@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
-import { LoaderProvider } from "./contexts/LoaderContext"; // ✅ Import loader provider
+import { LoaderProvider } from "./contexts/LoaderContext";
 
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -11,18 +11,32 @@ import Dashboard from "./pages/Dashboard";
 import Results from "./pages/Results";
 
 function App() {
-  // Load user from localStorage if exists
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
+  // Safely parse JSON from localStorage
+  const safeJSONParse = (key) => {
+    const item = localStorage.getItem(key);
+    if (!item) return null;
+    try {
+      return JSON.parse(item);
+    } catch (err) {
+      console.warn(`Failed to parse ${key} from localStorage:`, err);
+      localStorage.removeItem(key);
+      return null;
+    }
+  };
+
+  // Load user safely
+  const [user, setUser] = useState(() => safeJSONParse("user"));
+
+  // Load JWT token safely
+  const [access, setAccess] = useState(() => {
+    const token = localStorage.getItem("access");
+    return token && token !== "null" ? token : "";
   });
 
-  // JWT access token
-  const [access, setAccess] = useState(() => localStorage.getItem("access") || "");
-
-  // Persist OTP email across refreshes
+  // Persist OTP email safely
   const [verifyEmail, setVerifyEmail] = useState(() => {
-    return localStorage.getItem("verifyEmail") || "";
+    const email = localStorage.getItem("verifyEmail");
+    return email && email !== "null" ? email : "";
   });
 
   // Sync verifyEmail to localStorage
@@ -47,15 +61,14 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     setAccess("");
+    setVerifyEmail("");
+    localStorage.removeItem("user");
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
-    localStorage.removeItem("user");
     localStorage.removeItem("verifyEmail");
-    setVerifyEmail("");
   };
 
   return (
-    // ✅ Wrap entire app with LoaderProvider
     <LoaderProvider>
       <Router>
         <Routes>
