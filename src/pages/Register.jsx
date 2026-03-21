@@ -1,221 +1,249 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { registerUser } from "../api";
+import React, { useEffect, useState } from "react";
+import API from "../api";
+import Navbar from "../components/Navbar";
 
-export default function Register({ setVerifyEmail }) {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    first_name: "",
-    middle_name: "",
-    last_name: "",
-    email: "",
-    id_number: "",
-    password: "",
-    confirm_password: "",
-  });
+// Position color mapping
+const POSITION_COLORS = {
+  Governor: "bg-blue-50 border-blue-300 text-blue-900",
+  Senator: "bg-purple-50 border-purple-300 text-purple-900",
+  "Members of the County Assembly": "bg-green-50 border-green-300 text-green-900",
+};
 
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+export default function Dashboard({ user: propUser }) {
+  const [user] = useState(() =>
+    propUser || JSON.parse(localStorage.getItem("user"))
+  );
+  const [elections, setElections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [voting, setVoting] = useState(false);
 
-  const validateField = (name, value) => {
-    let error = "";
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [selectedPosition, setSelectedPosition] = useState(null);
 
-    if (["first_name", "middle_name", "last_name"].includes(name)) {
-      if (value.length < 2) error = `${name.replace("_", " ")} must have at least 2 letters.`;
-    }
+  useEffect(() => {
+    const fetchElections = async () => {
+      try {
+        const res = await API.get("/elections/");
+        setElections(res.data);
+      } catch (err) {
+        console.error("Failed to fetch elections:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchElections();
+  }, []);
 
-    if (name === "id_number") {
-      if (value.length < 7) error = "ID Number must be at least 7 digits.";
-    }
+  const confirmVote = async () => {
+    if (!selectedCandidate || !selectedPosition) return;
 
-    if (name === "password") {
-      if (value.length > 0 && value.length < 4) error = "Password must be at least 4 characters.";
-    }
-
-    if (name === "confirm_password") {
-      if (value !== formData.password) error = "Passwords do not match.";
-    }
-
-    if (name === "email") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (value && !emailRegex.test(value)) error = "Invalid email format.";
-    }
-
-    return error ? [error] : undefined;
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    let newValue = value;
-
-    // ID number: numbers only, max 8 digits
-    if (name === "id_number") {
-      newValue = value.replace(/\D/g, "");
-      if (newValue.length > 8) newValue = newValue.slice(0, 8);
-    }
-
-    setFormData({ ...formData, [name]: newValue });
-    setErrors({ ...errors, [name]: validateField(name, newValue) });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrors({});
-    setSuccessMessage("");
-
-    const newErrors = {};
-    Object.keys(formData).forEach((field) => {
-      const error = validateField(field, formData[field]);
-      if (error) newErrors[field] = error;
-    });
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setLoading(true);
     try {
-      await registerUser(formData);
-      setVerifyEmail(formData.email);
-      setSuccessMessage("🎉 Account created successfully! Verify email or login directly.");
-      setTimeout(() => setSuccessMessage(""), 5000);
-      setTimeout(() => navigate("/verify"), 2000);
+      setVoting(true);
+      await API.post(
+        `/votes/cast/${selectedPosition.id}/${selectedCandidate.id}/`
+      );
+      alert(`Vote recorded for ${selectedCandidate.name}`);
+      setShowModal(false);
+
+      // Refresh elections to update voting status
+      const res = await API.get("/elections/");
+      setElections(res.data);
     } catch (err) {
-      if (err.response?.data) setErrors(err.response.data);
-      else setErrors({ non_field_errors: ["Registration failed."] });
+      alert(err.response?.data?.error || "Voting failed");
     } finally {
-      setLoading(false);
+      setVoting(false);
     }
   };
 
-  // Calculate progress: percentage of fields filled correctly
-  const totalFields = Object.keys(formData).length;
-  const validFields = Object.keys(formData).filter((field) => !validateField(field, formData[field])).length;
-  const progressPercent = Math.round((validFields / totalFields) * 100);
+  if (!user) return <p className="text-center mt-10">Please login.</p>;
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="max-w-5xl w-full bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl overflow-hidden border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-2">
-          {/* Left Column: Form */}
-          <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto max-h-[90vh]">
-            <div className="flex flex-col gap-2 mb-4 sm:mb-6">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl sm:text-3xl" role="img" aria-label="Kenyan flag">🇰🇪</span>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Create Account</h2>
-              </div>
-
-              {/* Animated Progress Bar */}
-              <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-                <div
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    progressPercent === 100 ? "bg-green-500" : "bg-blue-400"
-                  }`}
-                  style={{ width: `${progressPercent}%` }}
-                ></div>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1">{progressPercent}% complete</p>
-            </div>
-
-            {errors.non_field_errors && (
-              <div className="mb-3 p-2 sm:p-3 bg-red-50 border-l-4 border-red-600 rounded-r-md">
-                <p className="text-red-700 text-sm">{errors.non_field_errors.join(" ")}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {[
-                ["first_name", "First Name"],
-                ["middle_name", "Middle Name"],
-                ["last_name", "Last Name"],
-                ["email", "Email", "email"],
-                ["id_number", "ID Number"],
-                ["password", "Password", "password"],
-                ["confirm_password", "Confirm Password", "password"],
-              ].map(([name, label, type = "text"]) => (
-                <div key={name} className="flex flex-col">
-                  <label htmlFor={name} className="sr-only">{label}</label>
-                  <input
-                    id={name}
-                    type={type}
-                    name={name}
-                    placeholder={label}
-                    value={formData[name]}
-                    onChange={handleChange}
-                    required
-                    className={`w-full px-2 sm:px-3 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-red-500 transition duration-200 bg-white/70 placeholder-gray-400 text-gray-900 ${
-                      errors[name] ? "border-red-600" : "border-gray-300"
-                    }`}
-                  />
-                  {errors[name] && (
-                    <p className="text-red-600 text-xs sm:text-sm mt-1">{errors[name].join(" ")}</p>
-                  )}
+  if (loading) {
+    return (
+      <div>
+        <Navbar user={user} />
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-8">
+            <div className="h-8 bg-gray-200 rounded w-64 mx-auto"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+                  <div className="h-24 bg-gray-200 rounded-full w-24 mx-auto"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
                 </div>
               ))}
-
-              <div className="sm:col-span-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-white font-semibold text-base sm:text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-lg"
-                  style={{
-                    background: "linear-gradient(90deg, #000000, #d21034, #007a33)",
-                    backgroundSize: "200% auto",
-                    transition: "background-position 0.3s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundPosition = "right center")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundPosition = "left center")}
-                >
-                  {loading ? "Registering..." : "Register"}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Right Column: Success/Login */}
-          <div className="relative p-4 sm:p-6 lg:p-8 bg-gray-50 flex flex-col items-center justify-center text-center border-t md:border-t-0 md:border-l border-gray-200">
-            {successMessage && (
-              <div className="absolute top-0 left-0 right-0 m-4 p-3 sm:p-4 bg-black text-white rounded-xl shadow-2xl animate-fade-in-down z-10">
-                <p className="text-sm sm:text-base font-medium">{successMessage}</p>
-                <div className="mt-2 sm:mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
-                  <button
-                    onClick={() => navigate("/login")}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs sm:text-sm font-semibold transition"
-                  >
-                    Go to Login
-                  </button>
-                  <button
-                    onClick={() => navigate("/verify")}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs sm:text-sm font-semibold transition"
-                  >
-                    Verify Email
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="max-w-xs">
-              <div className="mb-4 flex justify-center gap-1">
-                <span className="w-6 h-1 sm:w-8 sm:h-2 bg-black rounded-full"></span>
-                <span className="w-6 h-1 sm:w-8 sm:h-2 bg-red-600 rounded-full"></span>
-                <span className="w-6 h-1 sm:w-8 sm:h-2 bg-green-600 rounded-full"></span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Welcome Back!</h3>
-              <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">
-                Already have an account? Sign in to access your account.
-              </p>
-              <Link
-                to="/login"
-                className="inline-block w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition transform hover:scale-105 text-sm sm:text-base"
-              >
-                Log In
-              </Link>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <>
+      <Navbar user={user} />
+
+      <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">
+          🗳 Election Ballot
+        </h1>
+
+        <div className="space-y-10">
+          {elections.map((election) => (
+            <section
+              key={election.id}
+              className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100"
+            >
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {election.title}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">{election.description}</p>
+              </div>
+
+              <div className="p-6 space-y-8">
+                {election.positions.map((position) => {
+                  const colorClasses = POSITION_COLORS[position.title] || "bg-gray-50 border-gray-300 text-gray-900";
+
+                  return (
+                    <div key={position.id}>
+                      {/* Position Header with color accent */}
+                      <div
+                        className={`flex items-center justify-between mb-4 border-b-2 px-3 py-1 rounded ${colorClasses}`}
+                      >
+                        <h3 className="text-lg font-semibold">{position.title}</h3>
+                        {position.has_voted && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            ✓ You voted
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Candidate grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {position.candidates.map((candidate) => (
+                          <div
+                            key={candidate.id}
+                            className="bg-white border border-gray-200 rounded-xl p-6 text-center hover:shadow-md transition-shadow"
+                          >
+                            <img
+                              src={candidate.image_url}
+                              alt={candidate.name}
+                              className="w-24 h-24 rounded-full mx-auto object-cover border-2 border-gray-100"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "https://via.placeholder.com/96?text=?";
+                              }}
+                            />
+
+                            <h4 className="font-semibold text-gray-900 mt-4">
+                              {candidate.name}
+                            </h4>
+
+                            <div className="flex items-center justify-center gap-1 mt-2 text-sm text-gray-600">
+                              {candidate.party?.badge_url && (
+                                <img
+                                  src={candidate.party.badge_url}
+                                  alt={candidate.party.name}
+                                  className="w-5 h-5 object-contain"
+                                />
+                              )}
+                              <span>
+                                {candidate.party?.name} ({candidate.party?.abbreviation})
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                setSelectedCandidate(candidate);
+                                setSelectedPosition(position);
+                                setShowModal(true);
+                              }}
+                              disabled={!position.can_vote || voting}
+                              className={`mt-4 w-full py-2 px-4 rounded-lg font-medium transition ${
+                                position.can_vote
+                                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                  : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                              }`}
+                            >
+                              {position.can_vote ? "Vote" : "Vote Cast"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      {showModal && selectedCandidate && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-center mb-4">Confirm Your Vote</h3>
+
+            <div className="text-center">
+              <img
+                src={selectedCandidate.image_url}
+                alt={selectedCandidate.name}
+                className="w-24 h-24 rounded-full mx-auto object-cover border-2 border-gray-200"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://via.placeholder.com/96?text=?";
+                }}
+              />
+
+              <h4 className="font-semibold text-lg mt-2">{selectedCandidate.name}</h4>
+
+              <div className="flex items-center justify-center gap-2 mt-1 text-gray-600">
+                {selectedCandidate.party?.badge_url && (
+                  <img
+                    src={selectedCandidate.party.badge_url}
+                    alt={selectedCandidate.party.name}
+                    className="w-5 h-5 object-contain"
+                  />
+                )}
+                <span>
+                  {selectedCandidate.party?.name} ({selectedCandidate.party?.abbreviation})
+                </span>
+              </div>
+
+              <p className="text-sm text-gray-500 mt-4">
+                You are voting for <span className="font-medium">{selectedCandidate.name}</span>{" "}
+                for <span className="font-medium">{selectedPosition.title}</span>.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmVote}
+                  disabled={voting}
+                  className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50"
+                >
+                  {voting ? "Confirming..." : "Confirm Vote"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
