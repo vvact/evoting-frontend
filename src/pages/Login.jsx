@@ -7,32 +7,29 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false); // ✅ Loading state
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setLoading(true); // start loading
 
     try {
-      // Call loginUser helper (uses PublicAPI under the hood)
       const res = await loginUser({ email, password });
-
       const { access, refresh, user } = res;
 
-      // Save tokens & user (already done in loginUser, but safe to double-check)
       localStorage.setItem("access", access);
       localStorage.setItem("refresh", refresh);
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Call parent callback
       onLogin(user, { access, refresh });
 
       setSuccess("Login successful! Redirecting...");
 
       setTimeout(() => navigate("/dashboard"), 800);
     } catch (err) {
-      // Handle errors from backend
       if (err.response?.data?.detail) {
         setError(err.response.data.detail);
       } else if (err.response?.data?.non_field_errors) {
@@ -40,6 +37,8 @@ export default function Login({ onLogin }) {
       } else {
         setError("Login failed. Please check your credentials.");
       }
+    } finally {
+      setLoading(false); // stop loading
     }
   };
 
@@ -78,15 +77,49 @@ export default function Login({ onLogin }) {
 
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors"
+            disabled={loading} // ✅ disable during loading
+            className={`w-full py-2 px-4 font-semibold rounded-md transition-colors ${
+              loading
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
           >
-            Login
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"
+                  ></path>
+                </svg>
+                Logging in...
+              </span>
+            ) : (
+              "Login"
+            )}
           </button>
         </form>
 
         <p className="text-sm text-center text-gray-600">
           Don't have an account?{" "}
-          <Link to="/register" className="text-blue-600 hover:underline font-medium">
+          <Link
+            to="/register"
+            className="text-blue-600 hover:underline font-medium"
+          >
             Register
           </Link>
         </p>
