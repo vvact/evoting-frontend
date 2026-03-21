@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
 /* Kenyan flag stripes: Black, White, Red, White, Green */
 .bg-kenya-flag {
   background-image: linear-gradient(
@@ -93,4 +95,14 @@
 }
 .animate-shake {
   animation: shake 0.3s ease-in-out;
+}
+
+/* Smooth fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
 }
