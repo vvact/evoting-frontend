@@ -1,22 +1,23 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../api";
-import LoadingOverlay from "../components/LoadingOverlay"; // ✅ IMPORT
+import { useLoader } from "../contexts/LoaderContext"; // ✅ Import global loader
 
 export default function Login({ onLogin }) {
+  const navigate = useNavigate();
+  const { showLoader, hideLoader } = useLoader(); // ✅ Access loader
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
 
+    showLoader(); // ✅ Show global loader
     try {
       const res = await loginUser({ email, password });
       const { access, refresh, user } = res;
@@ -28,7 +29,6 @@ export default function Login({ onLogin }) {
       onLogin(user, { access, refresh });
 
       setSuccess("Login successful! Redirecting...");
-
       setTimeout(() => navigate("/dashboard"), 800);
     } catch (err) {
       if (err.response?.data?.detail) {
@@ -39,14 +39,13 @@ export default function Login({ onLogin }) {
         setError("Login failed. Please check your credentials.");
       }
     } finally {
-      setLoading(false);
+      hideLoader(); // ✅ Hide global loader
     }
   };
 
   return (
     <>
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 px-4 py-4">
-        
         {/* Decorative background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -55,12 +54,10 @@ export default function Login({ onLogin }) {
         </div>
 
         <div className="relative w-full max-w-md bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
-          
           {/* Accent bar */}
           <div className="h-1 bg-gradient-to-r from-black via-red-600 to-green-600"></div>
 
           <div className="p-5 sm:p-6">
-            
             {/* Header */}
             <div className="text-center mb-4">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full mb-2">
@@ -71,9 +68,7 @@ export default function Login({ onLogin }) {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                 Welcome Back
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Sign in to your voting account
-              </p>
+              <p className="text-sm text-gray-500 mt-1">Sign in to your voting account</p>
             </div>
 
             {/* Error */}
@@ -92,12 +87,9 @@ export default function Login({ onLogin }) {
 
             {/* Form */}
             <form className="space-y-3" onSubmit={handleSubmit}>
-              
               {/* Email */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Email Address
-                </label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Email Address</label>
                 <input
                   type="email"
                   placeholder="you@example.com"
@@ -110,9 +102,7 @@ export default function Login({ onLogin }) {
 
               {/* Password */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Password
-                </label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
                 <input
                   type="password"
                   placeholder="••••••••"
@@ -126,14 +116,9 @@ export default function Login({ onLogin }) {
               {/* Button */}
               <button
                 type="submit"
-                disabled={loading}
-                className={`w-full py-2.5 px-4 font-semibold rounded-lg transition-all duration-200 ${
-                  loading
-                    ? "bg-red-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg active:scale-[0.98]"
-                }`}
+                className="w-full py-2.5 px-4 font-semibold rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200"
               >
-                {loading ? "Logging in..." : "Login"}
+                Login
               </button>
             </form>
 
@@ -149,13 +134,9 @@ export default function Login({ onLogin }) {
                 </Link>
               </p>
             </div>
-
           </div>
         </div>
       </div>
-
-      {/* ✅ FULLSCREEN LOADER */}
-      <LoadingOverlay show={loading} text="Signing you in..." />
     </>
   );
 }

@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../api";
+import { useLoader } from "../contexts/LoaderContext"; // ✅ Import the loader
 
 export default function Register({ setVerifyEmail }) {
   const navigate = useNavigate();
+  const { showLoader, hideLoader } = useLoader(); // ✅ Access global loader
+
   const [formData, setFormData] = useState({
     first_name: "",
     middle_name: "",
@@ -15,7 +18,6 @@ export default function Register({ setVerifyEmail }) {
   });
 
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   const validateField = (name, value) => {
@@ -49,10 +51,8 @@ export default function Register({ setVerifyEmail }) {
     const { name, value } = e.target;
     let newValue = value;
 
-    // ID number: numbers only, max 8 digits
     if (name === "id_number") {
-      newValue = value.replace(/\D/g, "");
-      if (newValue.length > 8) newValue = newValue.slice(0, 8);
+      newValue = value.replace(/\D/g, "").slice(0, 8);
     }
 
     setFormData({ ...formData, [name]: newValue });
@@ -75,7 +75,7 @@ export default function Register({ setVerifyEmail }) {
       return;
     }
 
-    setLoading(true);
+    showLoader(); // ✅ Show global loader
     try {
       await registerUser(formData);
       setVerifyEmail(formData.email);
@@ -86,11 +86,10 @@ export default function Register({ setVerifyEmail }) {
       if (err.response?.data) setErrors(err.response.data);
       else setErrors({ non_field_errors: ["Registration failed."] });
     } finally {
-      setLoading(false);
+      hideLoader(); // ✅ Hide global loader
     }
   };
 
-  // Calculate progress: percentage of fields filled correctly
   const totalFields = Object.keys(formData).length;
   const validFields = Object.keys(formData).filter((field) => !validateField(field, formData[field])).length;
   const progressPercent = Math.round((validFields / totalFields) * 100);
@@ -106,8 +105,6 @@ export default function Register({ setVerifyEmail }) {
                 <span className="text-2xl sm:text-3xl" role="img" aria-label="Kenyan flag">🇰🇪</span>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Create Account</h2>
               </div>
-
-              {/* Animated Progress Bar */}
               <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                 <div
                   className={`h-2 rounded-full transition-all duration-500 ${
@@ -158,8 +155,7 @@ export default function Register({ setVerifyEmail }) {
               <div className="sm:col-span-2">
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-white font-semibold text-base sm:text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-lg"
+                  className="w-full py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-white font-semibold text-base sm:text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
                   style={{
                     background: "linear-gradient(90deg, #000000, #d21034, #007a33)",
                     backgroundSize: "200% auto",
@@ -168,7 +164,7 @@ export default function Register({ setVerifyEmail }) {
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundPosition = "right center")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundPosition = "left center")}
                 >
-                  {loading ? "Registering..." : "Register"}
+                  Register
                 </button>
               </div>
             </form>

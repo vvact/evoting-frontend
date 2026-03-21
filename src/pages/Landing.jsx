@@ -1,10 +1,27 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useApi } from "../api"; // ✅ Global loader-enabled API hook
 
 export default function Landing() {
+  const { call } = useApi(); // Use global loader
+  const [activeElection, setActiveElection] = useState(null);
+
+  const fetchElection = async () => {
+    try {
+      const res = await call({
+        url: "/elections/active/", // Example endpoint
+        method: "GET",
+      });
+      setActiveElection(res);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6 sm:p-8 md:p-10 relative overflow-hidden">
-        
+
         {/* Decorative flag stripes */}
         <div className="absolute top-0 left-0 w-full h-1 flex">
           <div className="w-1/3 h-full bg-green-600"></div>
@@ -40,53 +57,46 @@ export default function Landing() {
           </Link>
         </div>
 
-        {/* Optional Extra Info */}
-        <div className="space-y-6 text-sm sm:text-base">
+        {/* Demo: Fetch Active Election */}
+        <div className="text-center mb-6">
+          <button
+            onClick={fetchElection}
+            className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 shadow-md transition-all"
+          >
+            Fetch Active Election
+          </button>
+        </div>
 
-          <p className="text-gray-600 text-center max-w-xl mx-auto">
-            Participate in elections online. Identity verification ensures only authorized voters can cast votes securely.
-          </p>
-
-          {/* Active Election Preview */}
-          <div className="bg-gray-100 rounded-xl p-5 shadow-inner border-l-4 border-red-600">
+        {/* Display fetched data */}
+        {activeElection && (
+          <div className="bg-gray-100 rounded-xl p-5 shadow-inner border-l-4 border-red-600 mb-6">
             <h2 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              🗳 Active Election
+              🗳 {activeElection.title}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-gray-600">
-              <div>
-                <p className="font-medium text-gray-700">Election</p>
-                <p>2026 County Leadership Election</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-700">📅 Voting Period</p>
-                <p>13 Mar 2026 – 13 Oct 2026</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-700">👤 Candidates</p>
-                <p>24 Verified Candidates</p>
-              </div>
-            </div>
+            <p className="text-gray-600">
+              Voting Period: {activeElection.start_date} – {activeElection.end_date}
+            </p>
+            <p className="text-gray-600">Candidates: {activeElection.candidates_count}</p>
           </div>
+        )}
 
-          {/* Voting Guidelines */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 border-t-4 border-t-green-600">
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Voting Guidelines</h2>
-            <ul className="list-disc list-inside text-gray-600 space-y-1 marker:text-green-600">
-              <li>Each registered voter can vote only once per election.</li>
-              <li>Identity verification is required before voting.</li>
-              <li>Votes are securely recorded and cannot be modified.</li>
-              <li>All results are transparently counted.</li>
-            </ul>
-          </div>
+        {/* Voting Guidelines */}
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 border-t-4 border-t-green-600">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Voting Guidelines</h2>
+          <ul className="list-disc list-inside text-gray-600 space-y-1 marker:text-green-600">
+            <li>Each registered voter can vote only once per election.</li>
+            <li>Identity verification is required before voting.</li>
+            <li>Votes are securely recorded and cannot be modified.</li>
+            <li>All results are transparently counted.</li>
+          </ul>
+        </div>
 
-          {/* Security Badges */}
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-xs sm:text-sm text-gray-600">
-            <div className="flex items-center gap-1 bg-green-50 text-green-800 px-3 py-1 rounded-full shadow-sm border border-green-200">🛡 Encrypted Voting</div>
-            <div className="flex items-center gap-1 bg-black text-white px-3 py-1 rounded-full shadow-sm">🔒 Secure Authentication</div>
-            <div className="flex items-center gap-1 bg-red-50 text-red-800 px-3 py-1 rounded-full shadow-sm border border-red-200">✔ Verified Voters Only</div>
-            <div className="flex items-center gap-1 bg-gray-100 text-gray-800 px-3 py-1 rounded-full shadow-sm">⚖ Transparent Process</div>
-          </div>
-
+        {/* Security Badges */}
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-xs sm:text-sm text-gray-600 mt-6">
+          <div className="flex items-center gap-1 bg-green-50 text-green-800 px-3 py-1 rounded-full shadow-sm border border-green-200">🛡 Encrypted Voting</div>
+          <div className="flex items-center gap-1 bg-black text-white px-3 py-1 rounded-full shadow-sm">🔒 Secure Authentication</div>
+          <div className="flex items-center gap-1 bg-red-50 text-red-800 px-3 py-1 rounded-full shadow-sm border border-red-200">✔ Verified Voters Only</div>
+          <div className="flex items-center gap-1 bg-gray-100 text-gray-800 px-3 py-1 rounded-full shadow-sm">⚖ Transparent Process</div>
         </div>
 
         {/* Footer with flag colors */}

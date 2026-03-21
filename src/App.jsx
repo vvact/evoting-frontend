@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
+import { LoaderProvider } from "./contexts/LoaderContext"; // ✅ Import loader provider
+
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -53,57 +55,60 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        {/* Landing */}
-        <Route path="/" element={<Landing />} />
+    // ✅ Wrap entire app with LoaderProvider
+    <LoaderProvider>
+      <Router>
+        <Routes>
+          {/* Landing */}
+          <Route path="/" element={<Landing />} />
 
-        {/* Login */}
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          {/* Login */}
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
 
-        {/* Register */}
-        <Route path="/register" element={<Register setVerifyEmail={setVerifyEmail} />} />
+          {/* Register */}
+          <Route path="/register" element={<Register setVerifyEmail={setVerifyEmail} />} />
 
-        {/* OTP Verify */}
-        <Route
-          path="/verify"
-          element={
-            verifyEmail ? (
-              <Verify email={verifyEmail} setVerifyEmail={setVerifyEmail} />
-            ) : (
-              <Navigate to="/register" />
-            )
-          }
-        />
+          {/* OTP Verify */}
+          <Route
+            path="/verify"
+            element={
+              verifyEmail ? (
+                <Verify email={verifyEmail} setVerifyEmail={setVerifyEmail} />
+              ) : (
+                <Navigate to="/register" />
+              )
+            }
+          />
 
-        {/* Dashboard (requires JWT access) */}
-        <Route
-          path="/dashboard"
-          element={
-            access ? (
-              <Dashboard user={user} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
+          {/* Dashboard (requires JWT access) */}
+          <Route
+            path="/dashboard"
+            element={
+              access ? (
+                <Dashboard user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
 
-        {/* Results Page (requires JWT access) */}
-        <Route
-          path="/results"
-          element={
-            access ? (
-              <Results user={user} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
+          {/* Results Page (requires JWT access) */}
+          <Route
+            path="/results"
+            element={
+              access ? (
+                <Results user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
 
-        {/* Redirect unknown routes */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+          {/* Redirect unknown routes */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </LoaderProvider>
   );
 }
 
