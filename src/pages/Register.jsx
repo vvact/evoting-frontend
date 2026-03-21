@@ -18,15 +18,79 @@ export default function Register({ setVerifyEmail }) {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // Validation rules for each field
+  const validateField = (name, value) => {
+    let error = "";
+
+    if (["first_name", "middle_name", "last_name"].includes(name)) {
+      if (value.length < 2) {
+        error = `${name.replace("_", " ")} must have at least 2 letters.`;
+      }
+    }
+
+    if (name === "id_number") {
+      if (value.length < 7) {
+        error = "ID Number must be at least 7 digits.";
+      }
+    }
+
+    if (name === "password") {
+      if (value.length > 0 && value.length < 4) {
+        error = "Password must be at least 4 characters.";
+      }
+    }
+
+    if (name === "confirm_password") {
+      if (value !== formData.password) {
+        error = "Passwords do not match.";
+      }
+    }
+
+    if (name === "email") {
+      // Simple regex for basic email format check
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (value && !emailRegex.test(value)) {
+        error = "Invalid email format.";
+      }
+    }
+
+    return error ? [error] : undefined;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let newValue = value;
+
+    // Restrict ID number to numbers only and max 8 digits
+    if (name === "id_number") {
+      newValue = value.replace(/\D/g, ""); // Remove non-digit chars
+      if (newValue.length > 8) newValue = newValue.slice(0, 8); // Max 8 digits
+    }
+
+    setFormData({ ...formData, [name]: newValue });
+
+    // Real-time validation
+    setErrors({ ...errors, [name]: validateField(name, newValue) });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
     setSuccessMessage("");
-    setLoading(true);
 
+    // Final validation before API call
+    const newErrors = {};
+    Object.keys(formData).forEach((field) => {
+      const error = validateField(field, formData[field]);
+      if (error) newErrors[field] = error;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setLoading(true);
     try {
       await registerUser(formData);
       setVerifyEmail(formData.email);
@@ -90,7 +154,9 @@ export default function Register({ setVerifyEmail }) {
                     value={formData[name]}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200 bg-white/70 placeholder-gray-400 text-gray-900"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 transition duration-200 bg-white/70 placeholder-gray-400 text-gray-900 ${
+                      errors[name] ? "border-red-600" : "border-gray-300"
+                    }`}
                   />
                   {errors[name] && (
                     <p className="text-red-600 text-sm mt-1">
@@ -125,7 +191,9 @@ export default function Register({ setVerifyEmail }) {
           <div className="relative p-6 sm:p-8 lg:p-10 bg-gray-50 flex flex-col items-center justify-center text-center border-t md:border-t-0 md:border-l border-gray-200">
             {successMessage && (
               <div className="absolute top-0 left-0 right-0 m-4 p-4 bg-black text-white rounded-xl shadow-2xl animate-fade-in-down z-10">
-                <p className="text-sm sm:text-base font-medium">{successMessage}</p>
+                <p className="text-sm sm:text-base font-medium">
+                  {successMessage}
+                </p>
                 <div className="mt-3 flex flex-col sm:flex-row gap-3 justify-center">
                   <button
                     onClick={() => navigate("/login")}
