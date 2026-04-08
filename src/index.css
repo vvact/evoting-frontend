@@ -2,46 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
-/* Kenyan flag stripes: Black, White, Red, White, Green */
-.bg-kenya-flag {
-  background-image: linear-gradient(
-    to right,
-    #000000 20%,
-    #ffffff 22%,
-    #ff0000 48%,
-    #ffffff 50%,
-    #008000 78%
-  );
-  background-size: 200% 100%;
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+/* ===== GLOBAL FONT ===== */
+@layer base {
+  body {
+    font-family: 'Poppins', sans-serif;
+    @apply text-gray-800 bg-white;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  h1 {
+    @apply text-2xl font-semibold;
+  }
+
+  h2 {
+    @apply text-xl font-semibold;
+  }
+
+  h3 {
+    @apply text-lg font-medium;
+  }
+
+  p {
+    @apply text-base;
   }
 }
-.animate-fade-in-down {
-  animation: fadeInDown 0.3s ease-out;
+
+/* ===== TYPOGRAPHY SYSTEM ===== */
+@layer components {
+  .heading-primary {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  .heading-secondary {
+    @apply text-xl font-semibold;
+  }
+
+  .text-body {
+    @apply text-base leading-relaxed;
+  }
+
+  .text-small {
+    @apply text-sm text-gray-500;
+  }
+
+  .btn-text {
+    @apply text-sm font-medium;
+  }
 }
 
-/* Animation for sliding effect inside text */
-@keyframes flagSlide {
-  0% { background-position: 0% 0%; }
-  100% { background-position: -100% 0%; }
-}
+/* ===== YOUR EXISTING STYLES ===== */
 
-.animate-flag {
-  animation: flagSlide 6s linear infinite;
-}
-
-/* Kenyan flag stripes: Black, White, Red, White, Green */
+/* Kenyan flag stripes */
 .bg-kenya-flag {
   background-image: linear-gradient(
     to right,
@@ -56,19 +66,31 @@
   -webkit-text-fill-color: transparent;
 }
 
-/* Animation for sliding effect */
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-down {
+  animation: fadeInDown 0.3s ease-out;
+}
+
+/* Flag animation */
 @keyframes flagSlide {
   0% { background-position: 0% 0%; }
   100% { background-position: 100% 0%; }
 }
-
 .animate-flag {
   animation: flagSlide 5s linear infinite;
 }
 
-/* ===== NEW ANIMATIONS FOR LOGIN PAGE ===== */
-
-/* Blob animation for decorative background */
+/* Blob animation */
 @keyframes blob {
   0% { transform: translate(0px, 0px) scale(1); }
   33% { transform: translate(30px, -50px) scale(1.1); }
@@ -79,7 +101,6 @@
   animation: blob 7s infinite;
 }
 
-/* Delay utilities for blob animation */
 .animation-delay-2000 {
   animation-delay: 2s;
 }
@@ -87,7 +108,7 @@
   animation-delay: 4s;
 }
 
-/* Shake animation for error messages */
+/* Shake animation */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-5px); }
@@ -97,12 +118,11 @@
   animation: shake 0.3s ease-in-out;
 }
 
-/* Smooth fade-in */
+/* Fade in */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
