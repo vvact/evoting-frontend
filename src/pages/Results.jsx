@@ -1,86 +1,136 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  LineChart, Line,
+  RadarChart, PolarGrid, PolarAngleAxis, Radar,
+} from "recharts";
 import API from "../api";
 import Navbar from "../components/Navbar";
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
-  RadialBarChart, RadialBar,
-} from "recharts";
 
-// ── Palette: 8 distinct colors for candidates/parties ──
+// ── Palette ──
 const PALETTE = [
   "#d21034", "#007a33", "#3b82f6", "#f59e0b",
   "#a855f7", "#06b6d4", "#f97316", "#ec4899",
 ];
 
-// ── Tooltip styles shared ──
-const TOOLTIP_STYLE = {
-  background: "#1a1a1a",
-  border: "1px solid rgba(255,255,255,0.12)",
+// ── Shared tooltip style ──
+const TT = {
+  background: "#1c1c1c",
+  border: "1px solid rgba(255,255,255,0.1)",
   borderRadius: 10,
   color: "#fff",
   fontSize: 12,
-  fontFamily: "DM Sans, sans-serif",
+  fontFamily: "'DM Sans', sans-serif",
+  padding: "8px 12px",
 };
 
-// ── Custom Pie label ──
-function PieLabel({ cx, cy, midAngle, outerRadius, percent, name }) {
-  if (percent < 0.05) return null;
-  const RADIAN = Math.PI / 180;
-  const r = outerRadius + 24;
-  const x = cx + r * Math.cos(-midAngle * RADIAN);
-  const y = cy + r * Math.sin(-midAngle * RADIAN);
-  return (
-    <text x={x} y={y} fill="rgba(255,255,255,0.6)" textAnchor={x > cx ? "start" : "end"}
-      dominantBaseline="central" style={{ fontSize: 11, fontFamily: "DM Sans, sans-serif" }}>
-      {`${(percent * 100).toFixed(1)}%`}
-    </text>
-  );
-}
-
-// ── Animated count-up ──
-function CountUp({ target, duration = 1200 }) {
+// ── Count-up hook ──
+function useCountUp(target, duration = 1000) {
   const [val, setVal] = useState(0);
   useEffect(() => {
-    let start = 0;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { setVal(target); clearInterval(timer); }
-      else setVal(Math.floor(start));
-    }, 16);
-    return () => clearInterval(timer);
+    if (!target) return;
+    let current = 0;
+    const steps = 40;
+    const step = target / steps;
+    const interval = duration / steps;
+    const t = setInterval(() => {
+      current += step;
+      if (current >= target) { setVal(target); clearInterval(t); }
+      else setVal(Math.floor(current));
+    }, interval);
+    return () => clearInterval(t);
   }, [target, duration]);
-  return <>{val.toLocaleString()}</>;
+  return val;
 }
 
-// ── Candidate avatar with fallback ──
-function Avatar({ src, name, size = 44 }) {
-  const [loaded, setLoaded] = useState(false);
+function StatCard({ label, value, sub, color = "#d21034", delay = 0 }) {
+  const count = useCountUp(typeof value === "number" ? value : 0);
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", position: "relative", flexShrink: 0 }}>
-      <img src={src} alt={name}
-        onLoad={() => setLoaded(true)}
-        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1a1a1a&color=888&size=128`; }}
-        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,0.1)", opacity: loaded ? 1 : 0, transition: "opacity 0.4s" }}
-      />
+    <div style={{
+      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 14, padding: "1rem 1.25rem",
+      borderTop: `3px solid ${color}`,
+      animation: `fadeUp 0.5s ease ${delay}s both`,
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#fff" }}>
+        {typeof value === "number" ? count.toLocaleString() : value}
+      </div>
+      {sub && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }
 
-// ── Leader badge ──
-function LeaderBadge() {
+function Avatar({ src, name, size = 44 }) {
+  const [ok, setOk] = useState(false);
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 3,
-      padding: "2px 8px", borderRadius: 99,
-      background: "rgba(210,16,52,0.15)", border: "1px solid rgba(210,16,52,0.35)",
-      fontSize: 10, fontWeight: 700, color: "#d21034", letterSpacing: "0.06em",
-    }}>
-      👑 LEADING
-    </span>
+    <img src={src} alt={name}
+      onLoad={() => setOk(true)}
+      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1a1a1a&color=666&size=128`; setOk(true); }}
+      style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,0.1)", flexShrink: 0, opacity: ok ? 1 : 0, transition: "opacity 0.3s" }}
+    />
   );
+}
+
+function ChartTabBtn({ active, onClick, icon, label }) {
+  return (
+    <button onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 5,
+      padding: "5px 13px", borderRadius: 8, border: "none", cursor: "pointer",
+      fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 500,
+      background: active ? "rgba(255,255,255,0.12)" : "none",
+      color: active ? "#fff" : "rgba(255,255,255,0.38)",
+      transition: "background 0.2s, color 0.2s",
+    }}>{icon} {label}</button>
+  );
+}
+
+function SectionCard({ children, style = {} }) {
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.02)",
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: 18, overflow: "hidden",
+      marginBottom: "1.75rem",
+      ...style,
+    }}>{children}</div>
+  );
+}
+
+function SectionHead({ children }) {
+  return (
+    <div style={{
+      padding: "1.1rem 1.5rem",
+      borderBottom: "1px solid rgba(255,255,255,0.06)",
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      flexWrap: "wrap", gap: 10,
+    }}>{children}</div>
+  );
+}
+
+function SectionTitle({ children }) {
+  return <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 700, color: "#fff" }}>{children}</span>;
+}
+
+// ── Generate mock trend data ──
+function makeTrend(candidates, frame) {
+  const labels = frame === "hourly"
+    ? ["8AM","9AM","10AM","11AM","12PM","1PM","2PM","3PM","4PM","5PM"]
+    : ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  return {
+    labels,
+    series: candidates.slice(0, 4).map((c, i) => ({
+      name: c.name.split(" ").slice(-1)[0],
+      fullName: c.name,
+      color: PALETTE[i % PALETTE.length],
+      data: labels.map((_, j) => {
+        const progress = (j + 1) / labels.length;
+        return Math.round(c.votes * progress * (0.85 + Math.random() * 0.3));
+      }),
+    })),
+  };
 }
 
 export default function Results({ user: propUser }) {
@@ -88,32 +138,46 @@ export default function Results({ user: propUser }) {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState({}); // positionId -> "bar"|"pie"|"radial"
+  const [activePosId, setActivePosId] = useState(null);
+  const [chartType, setChartType] = useState("bar");
+  const [trendFrame, setTrendFrame] = useState("hourly");
+  const [showComparison, setShowComparison] = useState(false);
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     setMounted(true);
-    const fetchResults = async () => {
+    (async () => {
       try {
         const res = await API.get("/votes/results/1/");
         setResults(res.data);
-      } catch (err) {
+        if (res.data.positions?.length) setActivePosId(res.data.positions[0].position_id);
+      } catch {
         setError("Unable to load results. Please try again later.");
       } finally {
         setLoading(false);
       }
-    };
-    fetchResults();
+    })();
   }, []);
 
-  const getTab = (posId) => activeTab[posId] || "bar";
-  const setTab = (posId, tab) => setActiveTab((p) => ({ ...p, [posId]: tab }));
+  const position = results?.positions?.find((p) => p.position_id === activePosId);
+  const totalAll = results?.positions?.reduce((s, p) => s + p.candidates.reduce((ss, c) => ss + c.votes, 0), 0) || 0;
+  const allCandidates = results?.positions?.reduce((s, p) => s + p.candidates.length, 0) || 0;
 
-  // ── Aggregate stats ──
-  const totalVotesAll = results?.positions?.reduce((s, p) =>
-    s + p.candidates.reduce((ss, c) => ss + c.votes, 0), 0) || 0;
-  const totalPositions = results?.positions?.length || 0;
+  const sorted = position ? [...position.candidates].sort((a, b) => b.votes - a.votes) : [];
+  const posTotal = sorted.reduce((s, c) => s + c.votes, 0);
+  const leader = sorted[0];
+
+  const pieData = sorted.map((c, i) => ({ name: c.name.split(" ").slice(-1)[0], fullName: c.name, value: c.votes, color: PALETTE[i % PALETTE.length] }));
+  const barData = sorted.map((c, i) => ({ name: c.name.split(" ").slice(-1)[0], fullName: c.name, votes: c.votes, pct: posTotal ? +((c.votes / posTotal) * 100).toFixed(1) : 0, fill: PALETTE[i % PALETTE.length] }));
+  const radarData = sorted.slice(0, 6).map((c, i) => ({ subject: c.name.split(" ")[0], votes: c.votes, fullName: c.name }));
+
+  const trendData = position ? makeTrend(sorted, trendFrame) : null;
+  const lineChartData = trendData ? trendData.labels.map((label, i) => {
+    const obj = { label };
+    trendData.series.forEach((s) => { obj[s.name] = s.data[i]; });
+    return obj;
+  }) : [];
 
   return (
     <>
@@ -121,462 +185,363 @@ export default function Results({ user: propUser }) {
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #0a0a0a; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+        @keyframes shimmer { 0%,100%{opacity:.5} 50%{opacity:1} }
+        @keyframes popIn { from{opacity:0;transform:scale(.9)} to{opacity:1;transform:none} }
 
-        .results-root {
-          min-height: 100vh;
-          background: #0a0a0a;
+        .rr { min-height:100vh; background:#0a0a0a; font-family:'DM Sans',sans-serif;
           background-image:
-            radial-gradient(ellipse at 15% 25%, rgba(210,16,52,0.05) 0%, transparent 50%),
-            radial-gradient(ellipse at 85% 75%, rgba(0,122,51,0.05) 0%, transparent 50%);
-          font-family: 'DM Sans', sans-serif;
-          padding-bottom: 5rem;
+            radial-gradient(ellipse at 10% 20%, rgba(210,16,52,.05) 0%,transparent 50%),
+            radial-gradient(ellipse at 85% 80%, rgba(0,122,51,.05) 0%,transparent 50%);
+          padding-bottom:5rem;
         }
+        .rr-inner { max-width:1080px; margin:0 auto; padding:2rem 1.25rem;
+          opacity:0; transform:translateY(16px);
+          transition:opacity .45s ease, transform .45s ease;
+        }
+        .rr-inner.on { opacity:1; transform:none; }
 
-        .results-inner {
-          max-width: 1050px; margin: 0 auto; padding: 2rem 1.25rem;
-          opacity: 0; transform: translateY(16px);
-          transition: opacity 0.45s ease, transform 0.45s ease;
+        .pos-tabs { display:flex; flex-wrap:wrap; gap:6px; }
+        .pos-tab {
+          padding:6px 16px; border-radius:99px; border:1px solid rgba(255,255,255,.1);
+          font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500;
+          color:rgba(255,255,255,.4); background:none; cursor:pointer;
+          transition:background .2s, color .2s, border-color .2s;
         }
-        .results-inner.mounted { opacity: 1; transform: none; }
+        .pos-tab.active { background:rgba(210,16,52,.15); border-color:rgba(210,16,52,.4); color:#fff; }
+        .pos-tab:hover:not(.active) { background:rgba(255,255,255,.06); color:rgba(255,255,255,.7); }
 
-        /* ── Page header ── */
-        .results-header { margin-bottom: 2rem; }
-        .results-back {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: none; border: none; cursor: pointer;
-          font-family: 'DM Sans', sans-serif; font-size: 13px;
-          color: rgba(255,255,255,0.35); margin-bottom: 1.25rem;
-          padding: 0; transition: color 0.2s;
-        }
-        .results-back:hover { color: rgba(255,255,255,0.7); }
-        .results-title {
-          font-family: 'Sora', sans-serif;
-          font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.4px;
-        }
-        .results-subtitle { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+        .chart-tabs { display:flex; gap:3px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:3px; }
 
-        /* ── Stat cards row ── */
-        .stat-cards {
-          display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          gap: 12px; margin-bottom: 2rem;
-        }
-        .stat-card {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 14px; padding: 1rem 1.25rem;
-        }
-        .stat-label {
-          font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
-          text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px;
-        }
-        .stat-value {
-          font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 700; color: #fff;
-        }
-        .stat-sub { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 3px; }
+        .skel { background:rgba(255,255,255,.06); border-radius:8px; animation:shimmer 1.5s infinite; }
 
-        /* ── Position section ── */
-        .position-section {
-          background: rgba(255,255,255,0.02);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 18px; overflow: hidden;
-          margin-bottom: 1.75rem;
-        }
-        .position-head {
-          padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-        }
-        .position-head-left {}
-        .position-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: #fff; }
-        .position-meta { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 3px; }
+        .cand-row { display:flex; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+        .cand-row:last-child { border-bottom:none; }
 
-        /* ── Tab switcher ── */
-        .chart-tabs {
-          display: flex; gap: 4px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 10px; padding: 3px;
-        }
-        .chart-tab {
-          padding: 5px 12px; border-radius: 8px; border: none; cursor: pointer;
-          font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
-          color: rgba(255,255,255,0.4); background: none;
-          transition: background 0.2s, color 0.2s;
-          display: flex; align-items: center; gap: 5px;
-        }
-        .chart-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+        .cmp-table { width:100%; border-collapse:collapse; }
+        .cmp-table th { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:rgba(255,255,255,.3); padding:10px 14px; text-align:left; border-bottom:1px solid rgba(255,255,255,.08); }
+        .cmp-table td { font-size:13px; color:rgba(255,255,255,.65); padding:11px 14px; border-bottom:1px solid rgba(255,255,255,.05); }
+        .cmp-table tr:last-child td { border:none; }
+        .cmp-table tr:hover td { background:rgba(255,255,255,.03); }
 
-        /* ── Chart area ── */
-        .chart-area { padding: 1.25rem 1.5rem; }
-
-        /* ── Candidate leaderboard ── */
-        .candidate-row {
-          display: flex; align-items: center; gap: 14px;
-          padding: 12px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-          transition: background 0.15s;
-        }
-        .candidate-row:last-child { border-bottom: none; }
-        .rank-num {
-          font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700;
-          color: rgba(255,255,255,0.15); width: 28px; text-align: center; flex-shrink: 0;
-        }
-        .rank-num.top { color: #d21034; }
-        .candidate-info { flex: 1; min-width: 0; }
-        .candidate-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .candidate-name { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; color: #fff; }
-        .party-chip {
-          padding: 2px 8px; border-radius: 99px;
-          font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-          border: 1px solid; flex-shrink: 0;
-        }
-        .vote-bar-wrap { margin-top: 6px; }
-        .vote-bar-track {
-          height: 5px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden;
-        }
-        .vote-bar-fill {
-          height: 100%; border-radius: 99px;
-          transition: width 1s cubic-bezier(0.4,0,0.2,1);
-        }
-        .vote-count-row {
-          display: flex; justify-content: space-between; align-items: center;
-          margin-top: 4px;
-        }
-        .vote-count { font-size: 12px; color: rgba(255,255,255,0.4); }
-        .vote-pct { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; }
-
-        /* ── Winner banner ── */
         .winner-banner {
-          display: flex; align-items: center; gap: 14px;
-          background: rgba(0,122,51,0.08);
-          border: 1px solid rgba(0,180,80,0.2);
-          border-radius: 14px; padding: 1rem 1.25rem;
-          margin-bottom: 1rem;
+          display:flex; align-items:center; gap:14px;
+          background:rgba(0,122,51,.08); border:1px solid rgba(0,180,80,.18);
+          border-radius:14px; padding:1rem 1.25rem; margin-bottom:1rem;
+          animation:popIn .4s ease;
         }
-        .winner-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(0,200,80,0.7); margin-bottom: 2px; }
-        .winner-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: #fff; }
-        .winner-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+        .margin-pill { display:inline-flex; padding:2px 9px; border-radius:99px; font-size:10px; font-weight:700; }
 
-        /* ── Shimmer skeleton ── */
-        @keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:1} }
-        .skel { background: rgba(255,255,255,0.06); border-radius: 8px; animation: shimmer 1.5s infinite; }
-
-        /* ── Error / empty ── */
-        .results-empty {
-          min-height: 60vh; display: flex; flex-direction: column;
-          align-items: center; justify-content: center; text-align: center; gap: 10px;
-        }
-        .results-empty-icon { font-size: 44px; margin-bottom: 8px; }
-        .results-empty-title { font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 700; color: #fff; }
-        .results-empty-sub { font-size: 13px; color: rgba(255,255,255,0.35); }
-        .results-empty-btn {
-          margin-top: 1rem; padding: 10px 22px; border: none; border-radius: 10px;
-          background: #d21034; color: #fff; cursor: pointer;
-          font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600;
-          transition: background 0.2s;
-        }
-        .results-empty-btn:hover { background: #b00e2a; }
-
-        @media (max-width: 520px) {
-          .stat-cards { grid-template-columns: 1fr 1fr; }
-          .position-head { flex-direction: column; align-items: flex-start; }
-        }
+        .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:1.75rem; }
+        @media(max-width:640px) { .stats-grid { grid-template-columns:1fr 1fr; } }
+        @media(max-width:420px) { .stats-grid { grid-template-columns:1fr; } }
       `}</style>
 
       <Navbar user={user} />
 
-      <div className="results-root">
-        <div className={`results-inner${mounted ? " mounted" : ""}`}>
+      <div className="rr">
+        <div className={`rr-inner${mounted ? " on" : ""}`}>
 
-          {/* Back button & title */}
-          <div className="results-header">
-            <button className="results-back" onClick={() => navigate("/dashboard")}>
-              ← Back to ballot
-            </button>
-            <div className="results-title">
-              📊 {results?.election_title || "Election"} Results
-            </div>
-            <div className="results-subtitle">
-              Live results · Updates automatically
+          {/* ── Header ── */}
+          <div style={{ marginBottom: "1.75rem" }}>
+            <button onClick={() => navigate("/dashboard")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.3)", fontFamily: "'DM Sans',sans-serif", fontSize: 13, marginBottom: "1rem", padding: 0 }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "rgba(255,255,255,.65)"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,.3)"}
+            >← Back to ballot</button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 26, fontWeight: 700, color: "#fff", letterSpacing: "-0.4px" }}>
+                  📊 {results?.election_title || "Election"} Results
+                </div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,.3)", marginTop: 4 }}>Live results · Auto-updating</div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {["#000","#d21034","#007a33"].map((c) => <span key={c} style={{ width: 28, height: 5, borderRadius: 3, background: c, display: "block" }} />)}
+              </div>
             </div>
           </div>
 
-          {/* Loading */}
+          {/* ── Loading ── */}
           {loading && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16 }}>
-                {[1, 2, 3].map((i) => <div key={i} className="skel" style={{ height: 80 }} />)}
+            <div>
+              <div className="stats-grid">
+                {[1,2,3,4].map((i) => <div key={i} className="skel" style={{ height: 80 }} />)}
               </div>
-              {[1, 2].map((s) => (
-                <div key={s} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 18, padding: "1.5rem" }}>
-                  <div className="skel" style={{ width: "40%", height: 18, marginBottom: 16 }} />
-                  <div className="skel" style={{ height: 220 }} />
+              {[1,2].map((i) => (
+                <div key={i} style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 18, padding: "1.5rem", marginBottom: 16 }}>
+                  <div className="skel" style={{ width: "40%", height: 16, marginBottom: 16 }} />
+                  <div className="skel" style={{ height: 260 }} />
                 </div>
               ))}
             </div>
           )}
 
-          {/* Error */}
+          {/* ── Error ── */}
           {!loading && error && (
-            <div className="results-empty">
-              <div className="results-empty-icon">📢</div>
-              <div className="results-empty-title">Something went wrong</div>
-              <div className="results-empty-sub">{error}</div>
-              <button className="results-empty-btn" onClick={() => navigate("/dashboard")}>← Back to ballot</button>
+            <div style={{ minHeight: "50vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, textAlign: "center" }}>
+              <div style={{ fontSize: 44 }}>📢</div>
+              <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 20, fontWeight: 700, color: "#fff" }}>Something went wrong</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,.35)" }}>{error}</div>
+              <button onClick={() => navigate("/dashboard")} style={{ marginTop: 12, padding: "10px 22px", background: "#d21034", border: "none", borderRadius: 10, color: "#fff", fontFamily: "'Sora',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>← Back to ballot</button>
             </div>
           )}
 
-          {/* No results */}
-          {!loading && !error && !results && (
-            <div className="results-empty">
-              <div className="results-empty-icon">🗳</div>
-              <div className="results-empty-title">No results yet</div>
-              <div className="results-empty-sub">Results will appear here once voting begins.</div>
-              <button className="results-empty-btn" onClick={() => navigate("/dashboard")}>← Back to ballot</button>
-            </div>
-          )}
-
-          {/* Main results */}
           {!loading && !error && results && (
             <>
-              {/* Stat cards */}
-              <div className="stat-cards">
-                <div className="stat-card">
-                  <div className="stat-label">Total votes cast</div>
-                  <div className="stat-value"><CountUp target={totalVotesAll} /></div>
-                  <div className="stat-sub">across all positions</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">Positions contested</div>
-                  <div className="stat-value">{totalPositions}</div>
-                  <div className="stat-sub">in this election</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">Candidates</div>
-                  <div className="stat-value">
-                    {results.positions.reduce((s, p) => s + p.candidates.length, 0)}
-                  </div>
-                  <div className="stat-sub">on the ballot</div>
-                </div>
+              {/* ── Stat cards ── */}
+              <div className="stats-grid">
+                <StatCard label="Total votes" value={totalAll} sub="across all positions" color="#d21034" delay={0} />
+                <StatCard label="Positions" value={results.positions.length} sub="contested" color="#007a33" delay={0.05} />
+                <StatCard label="Candidates" value={allCandidates} sub="on the ballot" color="#3b82f6" delay={0.1} />
+                <StatCard label="Leading party" value={leader?.party || "—"} sub={leader ? `in ${position?.position_title || ""}` : ""} color="#f59e0b" delay={0.15} />
               </div>
 
-              {/* Per-position sections */}
-              {results.positions.map((position, posIdx) => {
-                const total = position.candidates.reduce((s, c) => s + c.votes, 0);
-                const sorted = [...position.candidates].sort((a, b) => b.votes - a.votes);
-                const leader = sorted[0];
-                const tab = getTab(position.position_id);
+              {/* ── Position selector ── */}
+              <SectionCard>
+                <SectionHead>
+                  <SectionTitle>Select position</SectionTitle>
+                  <button
+                    onClick={() => setShowComparison((s) => !s)}
+                    style={{ padding: "5px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,.1)", background: showComparison ? "rgba(210,16,52,.15)" : "none", color: showComparison ? "#fff" : "rgba(255,255,255,.4)", fontFamily: "'DM Sans',sans-serif", fontSize: 12, cursor: "pointer", transition: "all .2s" }}
+                  >
+                    {showComparison ? "✕ Hide" : "⊞ Show"} comparison
+                  </button>
+                </SectionHead>
+                <div style={{ padding: "1rem 1.5rem" }}>
+                  <div className="pos-tabs">
+                    {results.positions.map((p) => (
+                      <button key={p.position_id} className={`pos-tab${activePosId === p.position_id ? " active" : ""}`}
+                        onClick={() => setActivePosId(p.position_id)}>
+                        {p.position_title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </SectionCard>
 
-                // Chart data
-                const pieData = sorted.map((c, i) => ({
-                  name: c.name.split(" ").slice(-1)[0], // last name for brevity
-                  fullName: c.name,
-                  value: c.votes,
-                  color: PALETTE[i % PALETTE.length],
-                }));
-                const barData = sorted.map((c, i) => ({
-                  name: c.name.split(" ").slice(-1)[0],
-                  fullName: c.name,
-                  votes: c.votes,
-                  pct: total ? +((c.votes / total) * 100).toFixed(1) : 0,
-                  fill: PALETTE[i % PALETTE.length],
-                }));
-                const radialData = sorted.map((c, i) => ({
-                  name: c.name.split(" ").slice(-1)[0],
-                  fullName: c.name,
-                  uv: total ? +((c.votes / total) * 100).toFixed(1) : 0,
-                  fill: PALETTE[i % PALETTE.length],
-                }));
-
-                return (
-                  <div key={position.position_id} className="position-section"
-                    style={{ animationDelay: `${posIdx * 0.1}s` }}>
-
-                    {/* Section header */}
-                    <div className="position-head">
-                      <div className="position-head-left">
-                        <div className="position-title">{position.position_title}</div>
-                        <div className="position-meta">
-                          {total.toLocaleString()} votes · {sorted.length} candidates
+              {position && (
+                <>
+                  {/* ── Winner banner ── */}
+                  {leader && posTotal > 0 && (
+                    <div className="winner-banner">
+                      <Avatar src={leader.image_url} name={leader.name} size={52} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(0,200,80,.7)", marginBottom: 2 }}>🏆 Current leader — {position.position_title}</div>
+                        <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 17, fontWeight: 700, color: "#fff" }}>{leader.name}</div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)", marginTop: 2 }}>
+                          {leader.votes.toLocaleString()} votes · {posTotal ? ((leader.votes / posTotal) * 100).toFixed(1) : 0}% share
                         </div>
                       </div>
-                      <div className="chart-tabs">
-                        {[
-                          { id: "bar", icon: "▊", label: "Bar" },
-                          { id: "pie", icon: "◕", label: "Pie" },
-                          { id: "radial", icon: "◎", label: "Radial" },
-                        ].map((t) => (
-                          <button key={t.id}
-                            className={`chart-tab${tab === t.id ? " active" : ""}`}
-                            onClick={() => setTab(position.position_id, t.id)}>
-                            <span>{t.icon}</span>{t.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="chart-area">
-                      {/* Winner highlight */}
-                      {leader && total > 0 && (
-                        <div className="winner-banner">
-                          <Avatar src={leader.image_url} name={leader.name} size={48} />
-                          <div>
-                            <div className="winner-label">🏆 Current leader</div>
-                            <div className="winner-name">{leader.name}</div>
-                            <div className="winner-sub">
-                              {leader.votes.toLocaleString()} votes · {total ? ((leader.votes / total) * 100).toFixed(1) : 0}%
-                            </div>
+                      {sorted[1] && (
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,.3)" }}>ahead by</div>
+                          <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 20, fontWeight: 700, color: "#4ade80" }}>
+                            {(leader.votes - sorted[1].votes).toLocaleString()}
                           </div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,.3)" }}>votes</div>
                         </div>
                       )}
+                    </div>
+                  )}
 
-                      {/* ── BAR CHART ── */}
-                      {tab === "bar" && (
-                        <div style={{ width: "100%", height: 280, marginBottom: "1.5rem" }}>
-                          <ResponsiveContainer>
-                            <BarChart data={barData} margin={{ top: 10, right: 20, left: -10, bottom: 20 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                              <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "DM Sans" }}
-                                axisLine={false} tickLine={false} />
-                              <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10, fontFamily: "DM Sans" }}
-                                axisLine={false} tickLine={false} />
-                              <Tooltip
-                                contentStyle={TOOLTIP_STYLE}
-                                cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                                formatter={(val, name, props) => [
-                                  `${val.toLocaleString()} votes (${props.payload.pct}%)`,
-                                  props.payload.fullName
-                                ]}
-                              />
-                              <Bar dataKey="votes" radius={[6, 6, 0, 0]} maxBarSize={60}>
-                                {barData.map((entry, i) => (
-                                  <Cell key={i} fill={entry.fill} fillOpacity={0.9} />
-                                ))}
+                  {/* ── Chart card ── */}
+                  <SectionCard>
+                    <SectionHead>
+                      <SectionTitle>Vote distribution — {position.position_title}</SectionTitle>
+                      <div className="chart-tabs">
+                        <ChartTabBtn active={chartType === "bar"} onClick={() => setChartType("bar")} icon="▊" label="Bar" />
+                        <ChartTabBtn active={chartType === "pie"} onClick={() => setChartType("pie")} icon="◕" label="Donut" />
+                        <ChartTabBtn active={chartType === "radar"} onClick={() => setChartType("radar")} icon="◎" label="Radar" />
+                      </div>
+                    </SectionHead>
+                    <div style={{ padding: "1.25rem 1.5rem" }}>
+                      <div style={{ width: "100%", height: 300 }}>
+                        <ResponsiveContainer>
+                          {chartType === "bar" ? (
+                            <BarChart data={barData} margin={{ top: 8, right: 16, left: -8, bottom: 16 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.06)" vertical={false} />
+                              <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,.4)", fontSize: 11, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                              <YAxis tick={{ fill: "rgba(255,255,255,.3)", fontSize: 10, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                              <Tooltip contentStyle={TT} cursor={{ fill: "rgba(255,255,255,.03)" }}
+                                formatter={(v, n, p) => [`${v.toLocaleString()} votes (${p.payload.pct}%)`, p.payload.fullName]} />
+                              <Bar dataKey="votes" radius={[7,7,0,0]} maxBarSize={54}>
+                                {barData.map((e, i) => <Cell key={i} fill={e.fill} />)}
                               </Bar>
                             </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      )}
-
-                      {/* ── PIE CHART ── */}
-                      {tab === "pie" && (
-                        <div style={{ width: "100%", height: 300, marginBottom: "1.5rem" }}>
-                          <ResponsiveContainer>
+                          ) : chartType === "pie" ? (
                             <PieChart>
-                              <Pie
-                                data={pieData}
-                                cx="50%" cy="50%"
-                                innerRadius="45%" outerRadius="70%"
-                                paddingAngle={3}
-                                dataKey="value"
-                                labelLine={false}
-                                label={PieLabel}
-                                animationBegin={0}
-                                animationDuration={900}
-                              >
-                                {pieData.map((entry, i) => (
-                                  <Cell key={i} fill={entry.color} stroke="rgba(0,0,0,0.3)" strokeWidth={1} />
-                                ))}
+                              <Pie data={pieData} cx="50%" cy="50%" innerRadius="40%" outerRadius="66%"
+                                paddingAngle={3} dataKey="value" animationBegin={0} animationDuration={800} labelLine={false}>
+                                {pieData.map((e, i) => <Cell key={i} fill={e.color} stroke="rgba(0,0,0,.3)" strokeWidth={1} />)}
                               </Pie>
-                              <Tooltip
-                                contentStyle={TOOLTIP_STYLE}
-                                formatter={(val, name, props) => [
-                                  `${val.toLocaleString()} votes`,
-                                  props.payload.fullName
-                                ]}
-                              />
-                              <Legend
-                                formatter={(value, entry) => (
-                                  <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, fontFamily: "DM Sans" }}>
-                                    {entry.payload.fullName}
-                                  </span>
-                                )}
-                                iconType="circle" iconSize={8}
-                              />
+                              <Tooltip contentStyle={TT} formatter={(v, n, p) => [`${v.toLocaleString()} votes`, p.payload.fullName]} />
+                              <Legend iconType="circle" iconSize={8}
+                                formatter={(v, e) => <span style={{ color: "rgba(255,255,255,.5)", fontSize: 12, fontFamily: "DM Sans" }}>{e.payload.fullName}</span>} />
                             </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                      )}
-
-                      {/* ── RADIAL BAR CHART ── */}
-                      {tab === "radial" && (
-                        <div style={{ width: "100%", height: 300, marginBottom: "1.5rem" }}>
-                          <ResponsiveContainer>
-                            <RadialBarChart
-                              cx="50%" cy="50%"
-                              innerRadius="20%" outerRadius="90%"
-                              data={radialData}
-                              startAngle={180} endAngle={0}
-                            >
-                              <RadialBar
-                                minAngle={8}
-                                background={{ fill: "rgba(255,255,255,0.04)" }}
-                                clockWise={false}
-                                dataKey="uv"
-                                label={{ position: "insideStart", fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
-                              >
-                                {radialData.map((entry, i) => (
-                                  <Cell key={i} fill={entry.fill} />
-                                ))}
-                              </RadialBar>
-                              <Legend
-                                iconSize={10} iconType="circle"
-                                formatter={(value, entry) => (
-                                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "DM Sans" }}>
-                                    {entry.payload.fullName} — {entry.payload.uv}%
-                                  </span>
-                                )}
-                              />
-                              <Tooltip
-                                contentStyle={TOOLTIP_STYLE}
-                                formatter={(val, name, props) => [`${val}%`, props.payload.fullName]}
-                              />
-                            </RadialBarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      )}
-
-                      {/* ── Leaderboard list ── */}
-                      <div>
-                        {sorted.map((candidate, rank) => {
-                          const pct = total ? (candidate.votes / total) * 100 : 0;
-                          const color = PALETTE[rank % PALETTE.length];
-                          return (
-                            <div key={candidate.candidate_id} className="candidate-row">
-                              <div className={`rank-num${rank === 0 ? " top" : ""}`}>{rank + 1}</div>
-                              <Avatar src={candidate.image_url} name={candidate.name} size={40} />
-                              <div className="candidate-info">
-                                <div className="candidate-name-row">
-                                  <span className="candidate-name">{candidate.name}</span>
-                                  <span className="party-chip"
-                                    style={{ background: `${color}18`, borderColor: `${color}40`, color }}>
-                                    {candidate.party}
-                                  </span>
-                                  {rank === 0 && total > 0 && <LeaderBadge />}
-                                </div>
-                                <div className="vote-bar-wrap">
-                                  <div className="vote-bar-track">
-                                    <div className="vote-bar-fill"
-                                      style={{ width: `${pct}%`, background: color }} />
-                                  </div>
-                                  <div className="vote-count-row">
-                                    <span className="vote-count">
-                                      <CountUp target={candidate.votes} /> votes
-                                    </span>
-                                    <span className="vote-pct" style={{ color }}>
-                                      {pct.toFixed(1)}%
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                          ) : (
+                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                              <PolarGrid stroke="rgba(255,255,255,.08)" />
+                              <PolarAngleAxis dataKey="subject" tick={{ fill: "rgba(255,255,255,.4)", fontSize: 11, fontFamily: "DM Sans" }} />
+                              <Radar name="Votes" dataKey="votes" stroke="#d21034" fill="#d21034" fillOpacity={0.15} strokeWidth={2} />
+                              <Tooltip contentStyle={TT} formatter={(v) => [v.toLocaleString() + " votes", "Votes"]} />
+                            </RadarChart>
+                          )}
+                        </ResponsiveContainer>
                       </div>
                     </div>
+                  </SectionCard>
+
+                  {/* ── Trend line ── */}
+                  <SectionCard>
+                    <SectionHead>
+                      <SectionTitle>📈 Voting trend</SectionTitle>
+                      <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 10, padding: 3 }}>
+                        {["hourly","weekly"].map((f) => (
+                          <button key={f} onClick={() => setTrendFrame(f)} style={{
+                            padding: "4px 13px", borderRadius: 7, border: "none", cursor: "pointer",
+                            fontFamily: "'DM Sans',sans-serif", fontSize: 12,
+                            background: trendFrame === f ? "rgba(255,255,255,.12)" : "none",
+                            color: trendFrame === f ? "#fff" : "rgba(255,255,255,.35)",
+                            transition: "all .2s",
+                          }}>{f.charAt(0).toUpperCase() + f.slice(1)}</button>
+                        ))}
+                      </div>
+                    </SectionHead>
+                    <div style={{ padding: "1.25rem 1.5rem" }}>
+                      <div style={{ width: "100%", height: 250 }}>
+                        <ResponsiveContainer>
+                          <LineChart data={lineChartData} margin={{ top: 8, right: 16, left: -8, bottom: 8 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.05)" vertical={false} />
+                            <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,.35)", fontSize: 11, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: "rgba(255,255,255,.3)", fontSize: 10, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={TT} formatter={(v, n) => [v.toLocaleString() + " votes", n]} />
+                            <Legend iconType="circle" iconSize={7}
+                              formatter={(v) => <span style={{ color: "rgba(255,255,255,.5)", fontSize: 12, fontFamily: "DM Sans" }}>{v}</span>} />
+                            {trendData?.series.map((s) => (
+                              <Line key={s.name} type="monotone" dataKey={s.name}
+                                stroke={s.color} strokeWidth={2.5}
+                                dot={{ fill: s.color, strokeWidth: 0, r: 3 }}
+                                activeDot={{ r: 5, strokeWidth: 0 }}
+                                animationDuration={900} />
+                            ))}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,.2)", marginTop: 8, textAlign: "right" }}>
+                        * Simulated cumulative trend data
+                      </div>
+                    </div>
+                  </SectionCard>
+
+                  {/* ── Candidate leaderboard ── */}
+                  <SectionCard>
+                    <SectionHead>
+                      <SectionTitle>Candidate breakdown</SectionTitle>
+                      <span style={{ fontSize: 12, color: "rgba(255,255,255,.3)" }}>{posTotal.toLocaleString()} total votes</span>
+                    </SectionHead>
+                    <div style={{ padding: "0.5rem 1.5rem 1rem" }}>
+                      {sorted.map((c, rank) => {
+                        const pct = posTotal ? (c.votes / posTotal) * 100 : 0;
+                        const color = PALETTE[rank % PALETTE.length];
+                        const margin = rank === 0 && sorted[1]
+                          ? ((c.votes - sorted[1].votes) / posTotal * 100).toFixed(1) : null;
+                        return (
+                          <div key={c.candidate_id} className="cand-row">
+                            <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 18, fontWeight: 700, color: rank === 0 ? color : "rgba(255,255,255,.15)", width: 26, textAlign: "center", flexShrink: 0 }}>
+                              {rank === 0 ? "👑" : rank + 1}
+                            </div>
+                            <Avatar src={c.image_url} name={c.name} size={42} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                                <span style={{ fontFamily: "'Sora',sans-serif", fontSize: 14, fontWeight: 600, color: "#fff" }}>{c.name}</span>
+                                <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: `${color}1a`, border: `1px solid ${color}44`, color }}>
+                                  {c.party}
+                                </span>
+                                {rank === 0 && margin && (
+                                  <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: "rgba(210,16,52,.15)", border: "1px solid rgba(210,16,52,.3)", color: "#d21034" }}>
+                                    +{margin}% lead
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ height: 5, background: "rgba(255,255,255,.07)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
+                                <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 99, transition: "width 1s cubic-bezier(.4,0,.2,1)" }} />
+                              </div>
+                              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ fontSize: 12, color: "rgba(255,255,255,.35)" }}>{c.votes.toLocaleString()} votes</span>
+                                <span style={{ fontFamily: "'Sora',sans-serif", fontSize: 13, fontWeight: 700, color }}>{pct.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </SectionCard>
+                </>
+              )}
+
+              {/* ── Comparison table ── */}
+              {showComparison && (
+                <SectionCard style={{ animation: "fadeUp .35s ease" }}>
+                  <SectionHead>
+                    <SectionTitle>🏆 All positions — at a glance</SectionTitle>
+                  </SectionHead>
+                  <div style={{ padding: "0.75rem 1rem", overflowX: "auto" }}>
+                    <table className="cmp-table">
+                      <thead>
+                        <tr>
+                          <th>Position</th>
+                          <th>Leader</th>
+                          <th>Party</th>
+                          <th>Votes</th>
+                          <th>Share</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {results.positions.map((pos) => {
+                          const s = [...pos.candidates].sort((a, b) => b.votes - a.votes);
+                          const w = s[0];
+                          const tot = s.reduce((x, c) => x + c.votes, 0);
+                          const pct = tot ? ((w.votes / tot) * 100).toFixed(1) : 0;
+                          const margin = s[1] ? ((w.votes - s[1].votes) / tot * 100).toFixed(1) : 100;
+                          const tight = parseFloat(margin) < 10;
+                          return (
+                            <tr key={pos.position_id} style={{ cursor: "pointer" }}
+                              onClick={() => { setActivePosId(pos.position_id); window.scrollTo({ top: 300, behavior: "smooth" }); }}>
+                              <td style={{ color: "#fff", fontWeight: 500 }}>{pos.position_title}</td>
+                              <td style={{ color: "#fff" }}>{w.name}</td>
+                              <td>
+                                <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: "rgba(255,255,255,.07)", color: "rgba(255,255,255,.6)", border: "1px solid rgba(255,255,255,.12)" }}>
+                                  {w.party}
+                                </span>
+                              </td>
+                              <td>{w.votes.toLocaleString()}</td>
+                              <td>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <div style={{ width: 60, height: 4, background: "rgba(255,255,255,.08)", borderRadius: 99, overflow: "hidden" }}>
+                                    <div style={{ height: "100%", width: `${pct}%`, background: "#007a33", borderRadius: 99 }} />
+                                  </div>
+                                  <span style={{ fontSize: 12, color: "rgba(255,255,255,.55)" }}>{pct}%</span>
+                                </div>
+                              </td>
+                              <td>
+                                <span className="margin-pill" style={{
+                                  background: tight ? "rgba(210,16,52,.12)" : "rgba(0,122,51,.12)",
+                                  border: `1px solid ${tight ? "rgba(210,16,52,.3)" : "rgba(0,180,80,.25)"}`,
+                                  color: tight ? "#fc8181" : "#4ade80",
+                                }}>
+                                  {tight ? "⚡ Tight race" : `+${margin}% lead`}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                );
-              })}
+                </SectionCard>
+              )}
             </>
           )}
         </div>
