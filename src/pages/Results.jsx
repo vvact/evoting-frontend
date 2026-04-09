@@ -1,475 +1,586 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  PointElement,
-  LineElement,
-} from 'chart.js';
-import { Pie, Bar, Line } from 'react-chartjs-2';
 import API from "../api";
+import Navbar from "../components/Navbar";
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
+  RadialBarChart, RadialBar,
+} from "recharts";
 
-// Register ChartJS components
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  PointElement,
-  LineElement
-);
+// ── Palette: 8 distinct colors for candidates/parties ──
+const PALETTE = [
+  "#d21034", "#007a33", "#3b82f6", "#f59e0b",
+  "#a855f7", "#06b6d4", "#f97316", "#ec4899",
+];
 
-// Map party abbreviations to colors
-const partyColors = {
-  DP: "#007bff",
-  NUF: "#28a745",
-  IP: "#ffc107",
+// ── Tooltip styles shared ──
+const TOOLTIP_STYLE = {
+  background: "#1a1a1a",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: 10,
+  color: "#fff",
+  fontSize: 12,
+  fontFamily: "DM Sans, sans-serif",
 };
 
-// Interactive tooltip component
-const InfoTooltip = ({ text, children }) => {
-  const [show, setShow] = useState(false);
+// ── Custom Pie label ──
+function PieLabel({ cx, cy, midAngle, outerRadius, percent, name }) {
+  if (percent < 0.05) return null;
+  const RADIAN = Math.PI / 180;
+  const r = outerRadius + 24;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
   return (
-    <div className="relative inline-block">
-      <div
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-        className="cursor-help"
-      >
-        {children}
-      </div>
-      {show && (
-        <div className="absolute z-10 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap">
-          {text}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-        </div>
-      )}
+    <text x={x} y={y} fill="rgba(255,255,255,0.6)" textAnchor={x > cx ? "start" : "end"}
+      dominantBaseline="central" style={{ fontSize: 11, fontFamily: "DM Sans, sans-serif" }}>
+      {`${(percent * 100).toFixed(1)}%`}
+    </text>
+  );
+}
+
+// ── Animated count-up ──
+function CountUp({ target, duration = 1200 }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setVal(target); clearInterval(timer); }
+      else setVal(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target, duration]);
+  return <>{val.toLocaleString()}</>;
+}
+
+// ── Candidate avatar with fallback ──
+function Avatar({ src, name, size = 44 }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", position: "relative", flexShrink: 0 }}>
+      <img src={src} alt={name}
+        onLoad={() => setLoaded(true)}
+        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1a1a1a&color=888&size=128`; }}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,0.1)", opacity: loaded ? 1 : 0, transition: "opacity 0.4s" }}
+      />
     </div>
   );
-};
+}
 
-export default function Results() {
+// ── Leader badge ──
+function LeaderBadge() {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 3,
+      padding: "2px 8px", borderRadius: 99,
+      background: "rgba(210,16,52,0.15)", border: "1px solid rgba(210,16,52,0.35)",
+      fontSize: 10, fontWeight: 700, color: "#d21034", letterSpacing: "0.06em",
+    }}>
+      👑 LEADING
+    </span>
+  );
+}
+
+export default function Results({ user: propUser }) {
+  const [user] = useState(() => propUser || JSON.parse(localStorage.getItem("user")));
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedPosition, setSelectedPosition] = useState(null);
-  const [chartType, setChartType] = useState('pie');
-  const [showComparison, setShowComparison] = useState(false);
-  const [timeFrame, setTimeFrame] = useState('hourly');
+  const [activeTab, setActiveTab] = useState({}); // positionId -> "bar"|"pie"|"radial"
+  const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    setMounted(true);
     const fetchResults = async () => {
       try {
-        setLoading(true);
         const res = await API.get("/votes/results/1/");
         setResults(res.data);
-        if (res.data.positions && res.data.positions.length > 0) {
-          setSelectedPosition(res.data.positions[0].position_id);
-        }
-        setError(null);
       } catch (err) {
-        console.error("Failed to fetch results:", err);
         setError("Unable to load results. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchResults();
   }, []);
 
-  const handleBack = () => navigate("/dashboard");
+  const getTab = (posId) => activeTab[posId] || "bar";
+  const setTab = (posId, tab) => setActiveTab((p) => ({ ...p, [posId]: tab }));
 
-  const getChartData = (position) => {
-    return {
-      labels: position.candidates.map(c => `${c.name} (${c.party})`),
-      datasets: [
-        {
-          data: position.candidates.map(c => c.votes),
-          backgroundColor: position.candidates.map(c => partyColors[c.party] || `hsl(${Math.random() * 360}, 70%, 50%)`),
-          borderColor: 'white',
-          borderWidth: 2,
-        },
-      ],
-    };
-  };
-
-  const getBarChartData = (position) => {
-    return {
-      labels: position.candidates.map(c => c.name.split(' ')[0]),
-      datasets: [
-        {
-          label: 'Votes Received',
-          data: position.candidates.map(c => c.votes),
-          backgroundColor: position.candidates.map(c => partyColors[c.party] || '#007bff'),
-          borderRadius: 8,
-          barPercentage: 0.7,
-        },
-      ],
-    };
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          font: { size: 12 },
-          padding: 15,
-        },
-      },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            const label = context.label || '';
-            const value = context.raw || 0;
-            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-            const percentage = ((value / total) * 100).toFixed(1);
-            return `${label}: ${value.toLocaleString()} votes (${percentage}%)`;
-          },
-        },
-      },
-    },
-  };
-
-  const barOptions = {
-    ...chartOptions,
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Number of Votes',
-          font: { weight: 'bold' },
-        },
-        ticks: {
-          callback: (value) => value.toLocaleString(),
-        },
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Candidates',
-          font: { weight: 'bold' },
-        },
-      },
-    },
-  };
-
-  // Generate mock historical data (replace with real API data)
-  const getHistoricalData = (position) => {
-    const timeLabels = timeFrame === 'hourly' 
-      ? ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM']
-      : ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-    
-    return {
-      labels: timeLabels,
-      datasets: position.candidates.slice(0, 3).map((candidate, idx) => ({
-        label: candidate.name,
-        data: timeLabels.map((_, i) => Math.floor(candidate.votes * (0.5 + (i / timeLabels.length) * 0.5))),
-        borderColor: partyColors[candidate.party] || `hsl(${idx * 120}, 70%, 50%)`,
-        backgroundColor: 'transparent',
-        tension: 0.4,
-        fill: false,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      })),
-    };
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-10 bg-gray-200 rounded w-48"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {[1, 2].map(i => (
-                <div key={i} className="bg-white rounded-xl shadow-sm p-6 h-96"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="text-red-500 text-6xl mb-4">📢</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Oops! Something went wrong</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button onClick={handleBack} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-            ← Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!results) return null;
-
-  const currentPositionData = results.positions.find(p => p.position_id === selectedPosition);
-  const totalOverallVotes = results.positions.reduce(
-    (sum, pos) => sum + pos.candidates.reduce((s, c) => s + c.votes, 0),
-    0
-  );
+  // ── Aggregate stats ──
+  const totalVotesAll = results?.positions?.reduce((s, p) =>
+    s + p.candidates.reduce((ss, c) => ss + c.votes, 0), 0) || 0;
+  const totalPositions = results?.positions?.length || 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBack}
-              className="inline-flex items-center text-gray-600 hover:text-gray-900 transition"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0a0a0a; }
+
+        .results-root {
+          min-height: 100vh;
+          background: #0a0a0a;
+          background-image:
+            radial-gradient(ellipse at 15% 25%, rgba(210,16,52,0.05) 0%, transparent 50%),
+            radial-gradient(ellipse at 85% 75%, rgba(0,122,51,0.05) 0%, transparent 50%);
+          font-family: 'DM Sans', sans-serif;
+          padding-bottom: 5rem;
+        }
+
+        .results-inner {
+          max-width: 1050px; margin: 0 auto; padding: 2rem 1.25rem;
+          opacity: 0; transform: translateY(16px);
+          transition: opacity 0.45s ease, transform 0.45s ease;
+        }
+        .results-inner.mounted { opacity: 1; transform: none; }
+
+        /* ── Page header ── */
+        .results-header { margin-bottom: 2rem; }
+        .results-back {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: none; border: none; cursor: pointer;
+          font-family: 'DM Sans', sans-serif; font-size: 13px;
+          color: rgba(255,255,255,0.35); margin-bottom: 1.25rem;
+          padding: 0; transition: color 0.2s;
+        }
+        .results-back:hover { color: rgba(255,255,255,0.7); }
+        .results-title {
+          font-family: 'Sora', sans-serif;
+          font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.4px;
+        }
+        .results-subtitle { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+
+        /* ── Stat cards row ── */
+        .stat-cards {
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 12px; margin-bottom: 2rem;
+        }
+        .stat-card {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 14px; padding: 1rem 1.25rem;
+        }
+        .stat-label {
+          font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+          text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px;
+        }
+        .stat-value {
+          font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 700; color: #fff;
+        }
+        .stat-sub { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 3px; }
+
+        /* ── Position section ── */
+        .position-section {
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 18px; overflow: hidden;
+          margin-bottom: 1.75rem;
+        }
+        .position-head {
+          padding: 1.25rem 1.5rem;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+        }
+        .position-head-left {}
+        .position-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: #fff; }
+        .position-meta { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 3px; }
+
+        /* ── Tab switcher ── */
+        .chart-tabs {
+          display: flex; gap: 4px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 10px; padding: 3px;
+        }
+        .chart-tab {
+          padding: 5px 12px; border-radius: 8px; border: none; cursor: pointer;
+          font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+          color: rgba(255,255,255,0.4); background: none;
+          transition: background 0.2s, color 0.2s;
+          display: flex; align-items: center; gap: 5px;
+        }
+        .chart-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* ── Chart area ── */
+        .chart-area { padding: 1.25rem 1.5rem; }
+
+        /* ── Candidate leaderboard ── */
+        .candidate-row {
+          display: flex; align-items: center; gap: 14px;
+          padding: 12px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          transition: background 0.15s;
+        }
+        .candidate-row:last-child { border-bottom: none; }
+        .rank-num {
+          font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700;
+          color: rgba(255,255,255,0.15); width: 28px; text-align: center; flex-shrink: 0;
+        }
+        .rank-num.top { color: #d21034; }
+        .candidate-info { flex: 1; min-width: 0; }
+        .candidate-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .candidate-name { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; color: #fff; }
+        .party-chip {
+          padding: 2px 8px; border-radius: 99px;
+          font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+          border: 1px solid; flex-shrink: 0;
+        }
+        .vote-bar-wrap { margin-top: 6px; }
+        .vote-bar-track {
+          height: 5px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden;
+        }
+        .vote-bar-fill {
+          height: 100%; border-radius: 99px;
+          transition: width 1s cubic-bezier(0.4,0,0.2,1);
+        }
+        .vote-count-row {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-top: 4px;
+        }
+        .vote-count { font-size: 12px; color: rgba(255,255,255,0.4); }
+        .vote-pct { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; }
+
+        /* ── Winner banner ── */
+        .winner-banner {
+          display: flex; align-items: center; gap: 14px;
+          background: rgba(0,122,51,0.08);
+          border: 1px solid rgba(0,180,80,0.2);
+          border-radius: 14px; padding: 1rem 1.25rem;
+          margin-bottom: 1rem;
+        }
+        .winner-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(0,200,80,0.7); margin-bottom: 2px; }
+        .winner-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: #fff; }
+        .winner-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+
+        /* ── Shimmer skeleton ── */
+        @keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:1} }
+        .skel { background: rgba(255,255,255,0.06); border-radius: 8px; animation: shimmer 1.5s infinite; }
+
+        /* ── Error / empty ── */
+        .results-empty {
+          min-height: 60vh; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; text-align: center; gap: 10px;
+        }
+        .results-empty-icon { font-size: 44px; margin-bottom: 8px; }
+        .results-empty-title { font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 700; color: #fff; }
+        .results-empty-sub { font-size: 13px; color: rgba(255,255,255,0.35); }
+        .results-empty-btn {
+          margin-top: 1rem; padding: 10px 22px; border: none; border-radius: 10px;
+          background: #d21034; color: #fff; cursor: pointer;
+          font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600;
+          transition: background 0.2s;
+        }
+        .results-empty-btn:hover { background: #b00e2a; }
+
+        @media (max-width: 520px) {
+          .stat-cards { grid-template-columns: 1fr 1fr; }
+          .position-head { flex-direction: column; align-items: flex-start; }
+        }
+      `}</style>
+
+      <Navbar user={user} />
+
+      <div className="results-root">
+        <div className={`results-inner${mounted ? " mounted" : ""}`}>
+
+          {/* Back button & title */}
+          <div className="results-header">
+            <button className="results-back" onClick={() => navigate("/dashboard")}>
+              ← Back to ballot
             </button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              📊 {results.election_title} Results
-            </h1>
+            <div className="results-title">
+              📊 {results?.election_title || "Election"} Results
+            </div>
+            <div className="results-subtitle">
+              Live results · Updates automatically
+            </div>
           </div>
-          
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-2xl font-bold text-blue-600">{results.positions.length}</div>
-              <div className="text-sm text-gray-600">Positions</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-2xl font-bold text-green-600">{totalOverallVotes.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">Total Votes</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-2xl font-bold text-purple-600">
-                {Math.round((totalOverallVotes / (results.positions.length * 1000)) * 100)}%
+
+          {/* Loading */}
+          {loading && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16 }}>
+                {[1, 2, 3].map((i) => <div key={i} className="skel" style={{ height: 80 }} />)}
               </div>
-              <div className="text-sm text-gray-600">Turnout</div>
+              {[1, 2].map((s) => (
+                <div key={s} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 18, padding: "1.5rem" }}>
+                  <div className="skel" style={{ width: "40%", height: 18, marginBottom: 16 }} />
+                  <div className="skel" style={{ height: 220 }} />
+                </div>
+              ))}
             </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <button
-                onClick={() => setShowComparison(!showComparison)}
-                className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1 rounded-lg transition"
-              >
-                {showComparison ? 'Hide' : 'Show'} Comparison
-              </button>
+          )}
+
+          {/* Error */}
+          {!loading && error && (
+            <div className="results-empty">
+              <div className="results-empty-icon">📢</div>
+              <div className="results-empty-title">Something went wrong</div>
+              <div className="results-empty-sub">{error}</div>
+              <button className="results-empty-btn" onClick={() => navigate("/dashboard")}>← Back to ballot</button>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Position Selector */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Position</label>
-          <div className="flex flex-wrap gap-2">
-            {results.positions.map(position => (
-              <button
-                key={position.position_id}
-                onClick={() => setSelectedPosition(position.position_id)}
-                className={`px-4 py-2 rounded-lg transition ${
-                  selectedPosition === position.position_id
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {position.position_title}
-              </button>
-            ))}
-          </div>
-        </div>
+          {/* No results */}
+          {!loading && !error && !results && (
+            <div className="results-empty">
+              <div className="results-empty-icon">🗳</div>
+              <div className="results-empty-title">No results yet</div>
+              <div className="results-empty-sub">Results will appear here once voting begins.</div>
+              <button className="results-empty-btn" onClick={() => navigate("/dashboard")}>← Back to ballot</button>
+            </div>
+          )}
 
-        {currentPositionData && (
-          <div className="space-y-6">
-            {/* Chart Section */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {currentPositionData.position_title} - Vote Distribution
-                </h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setChartType('pie')}
-                    className={`px-3 py-1 rounded-lg transition ${
-                      chartType === 'pie' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    Pie Chart
-                  </button>
-                  <button
-                    onClick={() => setChartType('bar')}
-                    className={`px-3 py-1 rounded-lg transition ${
-                      chartType === 'bar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    Bar Chart
-                  </button>
+          {/* Main results */}
+          {!loading && !error && results && (
+            <>
+              {/* Stat cards */}
+              <div className="stat-cards">
+                <div className="stat-card">
+                  <div className="stat-label">Total votes cast</div>
+                  <div className="stat-value"><CountUp target={totalVotesAll} /></div>
+                  <div className="stat-sub">across all positions</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Positions contested</div>
+                  <div className="stat-value">{totalPositions}</div>
+                  <div className="stat-sub">in this election</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Candidates</div>
+                  <div className="stat-value">
+                    {results.positions.reduce((s, p) => s + p.candidates.length, 0)}
+                  </div>
+                  <div className="stat-sub">on the ballot</div>
                 </div>
               </div>
-              
-              <div className="h-96">
-                {chartType === 'pie' ? (
-                  <Pie data={getChartData(currentPositionData)} options={chartOptions} />
-                ) : (
-                  <Bar data={getBarChartData(currentPositionData)} options={barOptions} />
-                )}
-              </div>
-            </div>
 
-            {/* Historical Trend */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                <h2 className="text-xl font-semibold text-gray-800">📈 Voting Trends</h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setTimeFrame('hourly')}
-                    className={`px-3 py-1 rounded-lg transition ${
-                      timeFrame === 'hourly' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    Hourly
-                  </button>
-                  <button
-                    onClick={() => setTimeFrame('weekly')}
-                    className={`px-3 py-1 rounded-lg transition ${
-                      timeFrame === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    Weekly
-                  </button>
-                </div>
-              </div>
-              <div className="h-80">
-                <Line data={getHistoricalData(currentPositionData)} options={{
-                  ...chartOptions,
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      title: { display: true, text: 'Cumulative Votes' },
-                    },
-                  },
-                }} />
-              </div>
-            </div>
+              {/* Per-position sections */}
+              {results.positions.map((position, posIdx) => {
+                const total = position.candidates.reduce((s, c) => s + c.votes, 0);
+                const sorted = [...position.candidates].sort((a, b) => b.votes - a.votes);
+                const leader = sorted[0];
+                const tab = getTab(position.position_id);
 
-            {/* Candidates List with Progress Bars */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-800">Candidate Details</h2>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {currentPositionData.candidates.map((candidate) => {
-                  const totalVotes = currentPositionData.candidates.reduce((sum, c) => sum + c.votes, 0);
-                  const percentage = totalVotes ? ((candidate.votes / totalVotes) * 100).toFixed(1) : 0;
-                  const barColor = partyColors[candidate.party] || "#007bff";
+                // Chart data
+                const pieData = sorted.map((c, i) => ({
+                  name: c.name.split(" ").slice(-1)[0], // last name for brevity
+                  fullName: c.name,
+                  value: c.votes,
+                  color: PALETTE[i % PALETTE.length],
+                }));
+                const barData = sorted.map((c, i) => ({
+                  name: c.name.split(" ").slice(-1)[0],
+                  fullName: c.name,
+                  votes: c.votes,
+                  pct: total ? +((c.votes / total) * 100).toFixed(1) : 0,
+                  fill: PALETTE[i % PALETTE.length],
+                }));
+                const radialData = sorted.map((c, i) => ({
+                  name: c.name.split(" ").slice(-1)[0],
+                  fullName: c.name,
+                  uv: total ? +((c.votes / total) * 100).toFixed(1) : 0,
+                  fill: PALETTE[i % PALETTE.length],
+                }));
 
-                  return (
-                    <div key={candidate.candidate_id} className="p-6 hover:bg-gray-50 transition">
-                      <div className="flex flex-col md:flex-row md:items-center gap-6">
-                        <div className="flex items-center gap-4 flex-1">
-                          <img
-                            src={candidate.image_url}
-                            alt={candidate.name}
-                            className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = "https://via.placeholder.com/64?text=?";
-                            }}
-                          />
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <span className="font-semibold text-gray-900 text-lg">{candidate.name}</span>
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
-                                {candidate.party}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-gray-600">
-                              <span className="font-medium text-blue-600">{candidate.votes.toLocaleString()} votes</span>
-                              <span>•</span>
-                              <InfoTooltip text="Percentage of total votes for this position">
-                                <span className="cursor-help">{percentage}%</span>
-                              </InfoTooltip>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-700"
-                                style={{ width: `${percentage}%`, backgroundColor: barColor }}
-                              ></div>
-                            </div>
-                            <span className="text-sm font-semibold text-gray-700 w-12 text-right">
-                              {percentage}%
-                            </span>
-                          </div>
+                return (
+                  <div key={position.position_id} className="position-section"
+                    style={{ animationDelay: `${posIdx * 0.1}s` }}>
+
+                    {/* Section header */}
+                    <div className="position-head">
+                      <div className="position-head-left">
+                        <div className="position-title">{position.position_title}</div>
+                        <div className="position-meta">
+                          {total.toLocaleString()} votes · {sorted.length} candidates
                         </div>
                       </div>
+                      <div className="chart-tabs">
+                        {[
+                          { id: "bar", icon: "▊", label: "Bar" },
+                          { id: "pie", icon: "◕", label: "Pie" },
+                          { id: "radial", icon: "◎", label: "Radial" },
+                        ].map((t) => (
+                          <button key={t.id}
+                            className={`chart-tab${tab === t.id ? " active" : ""}`}
+                            onClick={() => setTab(position.position_id, t.id)}>
+                            <span>{t.icon}</span>{t.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Position Comparison */}
-            {showComparison && (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">🏆 Position Comparison</h2>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Leading Candidate</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Votes</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Margin</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {results.positions.map(pos => {
-                        const sorted = [...pos.candidates].sort((a, b) => b.votes - a.votes);
-                        const winner = sorted[0];
-                        const second = sorted[1];
-                        const margin = second ? ((winner.votes - second.votes) / winner.votes * 100).toFixed(1) : 100;
-                        return (
-                          <tr key={pos.position_id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pos.position_title}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{winner.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{winner.votes.toLocaleString()}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${margin < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                {margin}% lead
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+                    <div className="chart-area">
+                      {/* Winner highlight */}
+                      {leader && total > 0 && (
+                        <div className="winner-banner">
+                          <Avatar src={leader.image_url} name={leader.name} size={48} />
+                          <div>
+                            <div className="winner-label">🏆 Current leader</div>
+                            <div className="winner-name">{leader.name}</div>
+                            <div className="winner-sub">
+                              {leader.votes.toLocaleString()} votes · {total ? ((leader.votes / total) * 100).toFixed(1) : 0}%
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── BAR CHART ── */}
+                      {tab === "bar" && (
+                        <div style={{ width: "100%", height: 280, marginBottom: "1.5rem" }}>
+                          <ResponsiveContainer>
+                            <BarChart data={barData} margin={{ top: 10, right: 20, left: -10, bottom: 20 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                              <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "DM Sans" }}
+                                axisLine={false} tickLine={false} />
+                              <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10, fontFamily: "DM Sans" }}
+                                axisLine={false} tickLine={false} />
+                              <Tooltip
+                                contentStyle={TOOLTIP_STYLE}
+                                cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                                formatter={(val, name, props) => [
+                                  `${val.toLocaleString()} votes (${props.payload.pct}%)`,
+                                  props.payload.fullName
+                                ]}
+                              />
+                              <Bar dataKey="votes" radius={[6, 6, 0, 0]} maxBarSize={60}>
+                                {barData.map((entry, i) => (
+                                  <Cell key={i} fill={entry.fill} fillOpacity={0.9} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {/* ── PIE CHART ── */}
+                      {tab === "pie" && (
+                        <div style={{ width: "100%", height: 300, marginBottom: "1.5rem" }}>
+                          <ResponsiveContainer>
+                            <PieChart>
+                              <Pie
+                                data={pieData}
+                                cx="50%" cy="50%"
+                                innerRadius="45%" outerRadius="70%"
+                                paddingAngle={3}
+                                dataKey="value"
+                                labelLine={false}
+                                label={PieLabel}
+                                animationBegin={0}
+                                animationDuration={900}
+                              >
+                                {pieData.map((entry, i) => (
+                                  <Cell key={i} fill={entry.color} stroke="rgba(0,0,0,0.3)" strokeWidth={1} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                contentStyle={TOOLTIP_STYLE}
+                                formatter={(val, name, props) => [
+                                  `${val.toLocaleString()} votes`,
+                                  props.payload.fullName
+                                ]}
+                              />
+                              <Legend
+                                formatter={(value, entry) => (
+                                  <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, fontFamily: "DM Sans" }}>
+                                    {entry.payload.fullName}
+                                  </span>
+                                )}
+                                iconType="circle" iconSize={8}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {/* ── RADIAL BAR CHART ── */}
+                      {tab === "radial" && (
+                        <div style={{ width: "100%", height: 300, marginBottom: "1.5rem" }}>
+                          <ResponsiveContainer>
+                            <RadialBarChart
+                              cx="50%" cy="50%"
+                              innerRadius="20%" outerRadius="90%"
+                              data={radialData}
+                              startAngle={180} endAngle={0}
+                            >
+                              <RadialBar
+                                minAngle={8}
+                                background={{ fill: "rgba(255,255,255,0.04)" }}
+                                clockWise={false}
+                                dataKey="uv"
+                                label={{ position: "insideStart", fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
+                              >
+                                {radialData.map((entry, i) => (
+                                  <Cell key={i} fill={entry.fill} />
+                                ))}
+                              </RadialBar>
+                              <Legend
+                                iconSize={10} iconType="circle"
+                                formatter={(value, entry) => (
+                                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "DM Sans" }}>
+                                    {entry.payload.fullName} — {entry.payload.uv}%
+                                  </span>
+                                )}
+                              />
+                              <Tooltip
+                                contentStyle={TOOLTIP_STYLE}
+                                formatter={(val, name, props) => [`${val}%`, props.payload.fullName]}
+                              />
+                            </RadialBarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {/* ── Leaderboard list ── */}
+                      <div>
+                        {sorted.map((candidate, rank) => {
+                          const pct = total ? (candidate.votes / total) * 100 : 0;
+                          const color = PALETTE[rank % PALETTE.length];
+                          return (
+                            <div key={candidate.candidate_id} className="candidate-row">
+                              <div className={`rank-num${rank === 0 ? " top" : ""}`}>{rank + 1}</div>
+                              <Avatar src={candidate.image_url} name={candidate.name} size={40} />
+                              <div className="candidate-info">
+                                <div className="candidate-name-row">
+                                  <span className="candidate-name">{candidate.name}</span>
+                                  <span className="party-chip"
+                                    style={{ background: `${color}18`, borderColor: `${color}40`, color }}>
+                                    {candidate.party}
+                                  </span>
+                                  {rank === 0 && total > 0 && <LeaderBadge />}
+                                </div>
+                                <div className="vote-bar-wrap">
+                                  <div className="vote-bar-track">
+                                    <div className="vote-bar-fill"
+                                      style={{ width: `${pct}%`, background: color }} />
+                                  </div>
+                                  <div className="vote-count-row">
+                                    <span className="vote-count">
+                                      <CountUp target={candidate.votes} /> votes
+                                    </span>
+                                    <span className="vote-pct" style={{ color }}>
+                                      {pct.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
