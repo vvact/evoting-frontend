@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Sitemap: https://evoting.nairobi.go.ke/sitemap.xml
+
+# Crawl-delay for respectful scraping
+Crawl-delay: 10

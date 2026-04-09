@@ -2,12 +2,157 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- PRIMARY META TAGS -->
+    <title>Nairobi County e-Voting | Secure Digital Democracy Platform</title>
+    <meta name="title" content="Nairobi County e-Voting | Secure Digital Democracy Platform" />
+    <meta name="description" content="Official digital voting platform for Nairobi City County. Participate in local elections, public consultations, and civic decision-making securely from any device. Powered by blockchain-verified technology." />
+    <meta name="keywords" content="Nairobi voting, Kenya evoting, Nairobi County elections, digital democracy, secure voting Kenya, civic participation Nairobi, county government voting, public consultation Nairobi" />
+    <meta name="author" content="Nairobi City County Government" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="language" content="English" />
+    <meta name="geo.region" content="KE-110" />
+    <meta name="geo.placename" content="Nairobi" />
+    <meta name="geo.position" content="-1.2921;36.8219" />
+    <meta name="ICBM" content="-1.2921, 36.8219" />
+
+    <!-- OPEN GRAPH / SOCIAL SHARING (Facebook, LinkedIn, WhatsApp) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://evoting.nairobi.go.ke/" />
+    <meta property="og:title" content="Nairobi County e-Voting | Secure Digital Civic Participation" />
+    <meta property="og:description" content="Make your voice heard in Nairobi County. Participate in MCA elections, budget allocation polls, and community referendums with end-to-end encrypted voting technology." />
+    <meta property="og:image" content="https://evoting.nairobi.go.ke/og-image-nairobi.jpg" />
+    <meta property="og:image:alt" content="Nairobi County e-Voting platform interface showing secure ballot casting" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Nairobi County e-Voting" />
+    <meta property="og:locale" content="en_KE" />
+
+    <!-- TWITTER CARD -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://evoting.nairobi.go.ke/" />
+    <meta name="twitter:title" content="Nairobi County e-Voting | Secure Digital Democracy" />
+    <meta name="twitter:description" content="Official e-voting platform for Nairobi City County. Cast your vote securely on local governance issues, MCAs, and community projects." />
+    <meta name="twitter:image" content="https://evoting.nairobi.go.ke/og-image-nairobi.jpg" />
+    <meta name="twitter:image:alt" content="Secure digital voting interface for Nairobi County residents" />
+    <meta name="twitter:site" content="@NairobiCountyKe" />
+    <meta name="twitter:creator" content="@NairobiCountyKe" />
+
+    <!-- APPLICATION METADATA -->
+    <meta name="application-name" content="Nairobi County e-Voting" />
+    <meta name="theme-color" content="#006B3F" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Nairobi eVote" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-TileColor" content="#006B3F" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+
+    <!-- FAVICONS (Vite uses /public as root) -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180x180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <title>Nairobi County Evoting</title>
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#006B3F" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
+
+    <!-- STRUCTURED DATA (JSON-LD) for Government Voting Platform -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "GovernmentService",
+      "name": "Nairobi County e-Voting Platform",
+      "provider": {
+        "@type": "GovernmentOrganization",
+        "name": "Nairobi City County Government",
+        "url": "https://nairobi.go.ke",
+        "logo": "https://evoting.nairobi.go.ke/nairobi-county-logo.png",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "City Hall, City Hall Way",
+          "addressLocality": "Nairobi",
+          "addressRegion": "Nairobi County",
+          "postalCode": "00100",
+          "addressCountry": "KE"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+254-20-XXXXXXX",
+          "contactType": "customer service",
+          "email": "elections@nairobi.go.ke",
+          "availableLanguage": ["English", "Kiswahili"]
+        }
+      },
+      "serviceType": "Digital Voting Service",
+      "description": "Official electronic voting platform enabling Nairobi County citizens to participate in local elections, public budget allocation, and civic referendums securely online.",
+      "jurisdiction": {
+        "@type": "City",
+        "name": "Nairobi",
+        "containedInPlace": {
+          "@type": "Country",
+          "name": "Kenya"
+        }
+      },
+      "areaServed": "Nairobi County",
+      "availableChannel": {
+        "@type": "ServiceChannel",
+        "serviceUrl": "https://evoting.nairobi.go.ke",
+        "availableLanguage": ["en", "sw"]
+      },
+      "termsOfService": "https://evoting.nairobi.go.ke/terms",
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Registered Voters of Nairobi County"
+      }
+    }
+    </script>
+
+    <!-- Web App Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Nairobi County e-Voting",
+      "url": "https://evoting.nairobi.go.ke",
+      "description": "Secure digital voting application for Nairobi County residents",
+      "applicationCategory": "GovernmentApplication",
+      "operatingSystem": "All",
+      "browserRequirements": "Requires JavaScript. Supports Chrome, Firefox, Safari, Edge",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "KES"
+      },
+      "featureList": [
+        "Secure Blockchain-Verified Ballot Casting",
+        "Real-time Poll Results",
+        "Biometric Verification",
+        "Multi-language Support (English/Kiswahili)",
+        "Accessibility Features for Visually Impaired"
+      ]
+    }
+    </script>
+
+    <!-- FONTS -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- PRELOAD CRITICAL ASSETS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>
+
   <body>
+    <noscript>
+      <strong>JavaScript is required to access the Nairobi County e-Voting platform securely. Please enable JavaScript in your browser settings.</strong>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
