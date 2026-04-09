@@ -305,7 +305,7 @@ export default function Login({ onLogin }) {
           <div className="login-header">
             <div className="login-brand">
               <span className="login-flag" role="img" aria-label="Kenyan flag">🇰🇪</span>
-              <span className="login-brand-label">Kenya ID System</span>
+              <span className="login-brand-label">eVoting System</span>
             </div>
             <h1 className="login-title">Welcome back</h1>
             <p className="login-sub">Sign in to your voting account</p>

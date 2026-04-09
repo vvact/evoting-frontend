@@ -563,7 +563,7 @@ export default function Register({ setVerifyEmail }) {
               <span className="register-brand-flag" role="img" aria-label="Kenyan flag">🇰🇪</span>
               <div className="register-brand-text">
                 <h1>Create Account</h1>
-                <p>Kenya National ID System</p>
+                <p>Kenya eVoting System</p>
               </div>
             </div>
             <div className="progress-section">
