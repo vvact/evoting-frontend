@@ -6,7 +6,12 @@
 @layer base {
   body {
     font-family: 'Poppins', sans-serif;
-    @apply text-gray-800 bg-white;
+    @apply text-gray-800 bg-white transition-colors duration-300;
+  }
+
+  /* Dark mode body */
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
   }
 
   h1 {
@@ -41,7 +46,7 @@
   }
 
   .text-small {
-    @apply text-sm text-gray-500;
+    @apply text-sm text-gray-500 dark:text-gray-400;
   }
 
   .btn-text {
@@ -64,6 +69,7 @@
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Animations */
@@ -125,4 +131,9 @@
 }
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Prevent flash on page load */
+.no-transition {
+  transition: none !important;
 }

@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PublicAPI } from "../api";
+import { useTheme } from "../context/ThemeContext";
+import ThemeToggle from "../components/ThemeToggle";
 
 const OTP_LENGTH = 6;
 
 export default function Verify({ email, setVerifyEmail }) {
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   const [digits, setDigits]           = useState(Array(OTP_LENGTH).fill(""));
   const [error, setError]             = useState("");
@@ -21,6 +24,8 @@ export default function Verify({ email, setVerifyEmail }) {
   });
   const [timer, setTimer]             = useState("");
   const inputRefs = useRef([]);
+
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     if (!email) navigate("/register");
@@ -127,7 +132,7 @@ export default function Verify({ email, setVerifyEmail }) {
     parseInt(timer.split("m")[1]) < 120;
 
   return (
-    <div className="verify-page">
+    <div className={`verify-page ${isDark ? 'dark-mode' : 'light-mode'}`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -138,24 +143,47 @@ export default function Verify({ email, setVerifyEmail }) {
           align-items: center;
           justify-content: center;
           padding: 2rem 1rem;
-          background: #0a0a0a;
-          background-image:
-            radial-gradient(ellipse at 20% 60%, rgba(0,122,51,0.07) 0%, transparent 55%),
-            radial-gradient(ellipse at 80% 30%, rgba(210,16,52,0.06) 0%, transparent 50%);
           font-family: 'DM Sans', sans-serif;
+          transition: background 0.3s ease;
+        }
+        
+        /* Light mode */
+        .verify-page.light-mode {
+          background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+        }
+        
+        /* Dark mode */
+        .verify-page.dark-mode {
+          background: #1a1a2e;
+          background-image:
+            radial-gradient(ellipse at 20% 60%, rgba(0,122,51,0.08) 0%, transparent 55%),
+            radial-gradient(ellipse at 80% 30%, rgba(210,16,52,0.06) 0%, transparent 50%);
         }
 
         .verify-card {
           width: 100%;
           max-width: 440px;
-          background: #111;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px;
+          border-radius: 24px;
           overflow: hidden;
           opacity: 0;
           transform: translateY(20px);
           transition: opacity 0.45s ease, transform 0.45s ease;
         }
+        
+        /* Light mode card */
+        .light-mode .verify-card {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.08);
+          box-shadow: 0 20px 35px -10px rgba(0,0,0,0.1);
+        }
+        
+        /* Dark mode card */
+        .dark-mode .verify-card {
+          background: #16213e;
+          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: 0 20px 35px -10px rgba(0,0,0,0.3);
+        }
+        
         .verify-card.mounted { opacity: 1; transform: translateY(0); }
         .verify-card.shake { animation: shake 0.5s cubic-bezier(0.36,0.07,0.19,0.97); }
         @keyframes shake {
@@ -172,10 +200,16 @@ export default function Verify({ email, setVerifyEmail }) {
         .verify-header { text-align: center; margin-bottom: 2rem; }
         .verify-icon {
           width: 64px; height: 64px; border-radius: 50%;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
           display: flex; align-items: center; justify-content: center;
           font-size: 26px; margin: 0 auto 1.25rem;
+        }
+        .light-mode .verify-icon {
+          background: rgba(0,0,0,0.04);
+          border: 1px solid rgba(0,0,0,0.1);
+        }
+        .dark-mode .verify-icon {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
         }
         .verify-icon.success-icon {
           background: rgba(0,122,51,0.15);
@@ -187,17 +221,31 @@ export default function Verify({ email, setVerifyEmail }) {
         .verify-title {
           font-family: 'Sora', sans-serif;
           font-size: 22px; font-weight: 700;
-          color: #fff; letter-spacing: -0.3px; margin-bottom: 6px;
+          letter-spacing: -0.3px; margin-bottom: 6px;
         }
-        .verify-sub { font-size: 13px; color: rgba(255,255,255,0.38); line-height: 1.6; }
+        .light-mode .verify-title { color: #1a1a2e; }
+        .dark-mode .verify-title { color: #fff; }
+        
+        .verify-sub { font-size: 13px; line-height: 1.6; }
+        .light-mode .verify-sub { color: rgba(0,0,0,0.5); }
+        .dark-mode .verify-sub { color: rgba(255,255,255,0.38); }
+        
         .verify-email-chip {
           display: inline-block;
           margin-top: 8px; padding: 4px 12px;
+          border-radius: 99px;
+          font-size: 12px;
+          word-break: break-all;
+        }
+        .light-mode .verify-email-chip {
+          background: rgba(0,0,0,0.05);
+          border: 1px solid rgba(0,0,0,0.1);
+          color: rgba(0,0,0,0.6);
+        }
+        .dark-mode .verify-email-chip {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 99px;
-          font-size: 12px; color: rgba(255,255,255,0.6);
-          word-break: break-all;
+          color: rgba(255,255,255,0.6);
         }
 
         /* ── Timer ── */
@@ -206,14 +254,21 @@ export default function Verify({ email, setVerifyEmail }) {
           gap: 7px; margin-bottom: 1.5rem;
           padding: 8px 16px;
           border-radius: 99px;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.03);
           font-size: 12px; font-weight: 500;
           width: fit-content; margin-left: auto; margin-right: auto;
           transition: border-color 0.4s, color 0.4s;
         }
+        .light-mode .timer-row {
+          border: 1px solid rgba(0,0,0,0.08);
+          background: rgba(0,0,0,0.03);
+        }
+        .dark-mode .timer-row {
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+        }
+        .light-mode .timer-row.normal { color: rgba(0,0,0,0.45); }
+        .dark-mode .timer-row.normal { color: rgba(255,255,255,0.45); }
         .timer-row.danger { border-color: rgba(210,16,52,0.35); color: #fc8181; }
-        .timer-row.normal { color: rgba(255,255,255,0.45); }
         .timer-dot {
           width: 6px; height: 6px; border-radius: 50%;
           background: #007a33;
@@ -230,28 +285,45 @@ export default function Verify({ email, setVerifyEmail }) {
         }
         .otp-box {
           width: 52px; height: 58px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
           border-radius: 12px;
           text-align: center;
           font-family: 'Sora', sans-serif;
           font-size: 22px; font-weight: 700;
-          color: #fff;
           outline: none;
           caret-color: #007a33;
-          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.15s;
+          transition: all 0.2s;
+        }
+        .light-mode .otp-box {
+          background: rgba(0,0,0,0.04);
+          border: 1px solid rgba(0,0,0,0.1);
+          color: #1a1a2e;
+        }
+        .dark-mode .otp-box {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: #fff;
         }
         .otp-box:focus {
-          border-color: rgba(255,255,255,0.35);
-          background: rgba(255,255,255,0.08);
-          box-shadow: 0 0 0 3px rgba(0,122,51,0.18);
+          border-color: #007a33;
           transform: translateY(-2px);
         }
-        .otp-box.filled {
+        .light-mode .otp-box:focus {
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(0,122,51,0.1);
+        }
+        .dark-mode .otp-box:focus {
+          background: rgba(255,255,255,0.08);
+          box-shadow: 0 0 0 3px rgba(0,122,51,0.18);
+        }
+        .light-mode .otp-box.filled {
+          border-color: #28a745;
+          background: rgba(0,122,51,0.05);
+        }
+        .dark-mode .otp-box.filled {
           border-color: rgba(0,180,80,0.45);
           background: rgba(0,122,51,0.07);
         }
-        .otp-box.error-box { border-color: rgba(210,16,52,0.5); }
+        .otp-box.error-box { border-color: #dc3545; }
         @media (max-width: 400px) {
           .otp-box { width: 42px; height: 50px; font-size: 18px; border-radius: 10px; }
           .otp-row { gap: 5px; }
@@ -260,18 +332,26 @@ export default function Verify({ email, setVerifyEmail }) {
         /* ── Error banner ── */
         .error-banner {
           display: flex; align-items: center; gap: 8px;
+          border-radius: 12px; padding: 10px 13px;
+          margin-bottom: 14px;
+          font-size: 13px;
+          animation: fadeIn 0.25s ease;
+        }
+        .light-mode .error-banner {
+          background: rgba(220,53,69,0.08);
+          border: 1px solid rgba(220,53,69,0.2);
+          color: #dc3545;
+        }
+        .dark-mode .error-banner {
           background: rgba(210,16,52,0.1);
           border: 1px solid rgba(210,16,52,0.28);
-          border-radius: 10px; padding: 10px 13px;
-          margin-bottom: 14px;
-          font-size: 13px; color: #fc8181;
-          animation: fadeIn 0.25s ease;
+          color: #fc8181;
         }
         @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
 
         /* ── Submit button ── */
         .submit-btn {
-          width: 100%; padding: 13px; border: none; border-radius: 10px;
+          width: 100%; padding: 13px; border: none; border-radius: 12px;
           font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600;
           color: #fff; cursor: pointer;
           background: linear-gradient(90deg,#000 0%,#d21034 50%,#007a33 100%);
@@ -285,29 +365,41 @@ export default function Verify({ email, setVerifyEmail }) {
 
         /* ── Resend ── */
         .resend-section { margin-top: 1.5rem; text-align: center; }
-        .resend-label { font-size: 13px; color: rgba(255,255,255,0.3); margin-bottom: 8px; }
+        .resend-label { font-size: 13px; margin-bottom: 8px; }
+        .light-mode .resend-label { color: rgba(0,0,0,0.4); }
+        .dark-mode .resend-label { color: rgba(255,255,255,0.3); }
         .resend-btn {
           background: none; border: none; cursor: pointer;
           font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
-          color: #d21034; transition: color 0.2s;
+          transition: color 0.2s;
           padding: 0;
         }
-        .resend-btn:hover:not(:disabled) { color: #ff3355; }
-        .resend-btn:disabled { opacity: 0.4; cursor: not-allowed; color: rgba(255,255,255,0.3); }
-        .cooldown-text { font-size: 12px; color: rgba(255,255,255,0.25); margin-top: 4px; }
+        .light-mode .resend-btn { color: #d21034; }
+        .dark-mode .resend-btn { color: #d21034; }
+        .light-mode .resend-btn:hover:not(:disabled) { color: #ff3355; }
+        .dark-mode .resend-btn:hover:not(:disabled) { color: #ff3355; }
+        .light-mode .resend-btn:disabled { color: rgba(0,0,0,0.3); }
+        .dark-mode .resend-btn:disabled { color: rgba(255,255,255,0.3); }
+        .cooldown-text { font-size: 12px; margin-top: 4px; }
+        .light-mode .cooldown-text { color: rgba(0,0,0,0.25); }
+        .dark-mode .cooldown-text { color: rgba(255,255,255,0.25); }
 
         /* ── Back ── */
         .back-row {
           margin-top: 1.5rem; padding-top: 1.25rem;
-          border-top: 1px solid rgba(255,255,255,0.06);
           text-align: center;
         }
+        .light-mode .back-row { border-top: 1px solid rgba(0,0,0,0.06); }
+        .dark-mode .back-row { border-top: 1px solid rgba(255,255,255,0.06); }
         .back-btn {
           background: none; border: none; cursor: pointer;
           font-family: 'DM Sans', sans-serif; font-size: 13px;
-          color: rgba(255,255,255,0.28); transition: color 0.2s;
+          transition: color 0.2s;
         }
-        .back-btn:hover { color: rgba(255,255,255,0.6); }
+        .light-mode .back-btn { color: rgba(0,0,0,0.28); }
+        .dark-mode .back-btn { color: rgba(255,255,255,0.28); }
+        .light-mode .back-btn:hover { color: rgba(0,0,0,0.6); }
+        .dark-mode .back-btn:hover { color: rgba(255,255,255,0.6); }
 
         /* ── Progress dots ── */
         .otp-progress {
@@ -315,11 +407,17 @@ export default function Verify({ email, setVerifyEmail }) {
         }
         .otp-pdot {
           width: 6px; height: 6px; border-radius: 50%;
-          background: rgba(255,255,255,0.1);
           transition: background 0.3s, transform 0.2s;
         }
+        .light-mode .otp-pdot { background: rgba(0,0,0,0.1); }
+        .dark-mode .otp-pdot { background: rgba(255,255,255,0.1); }
         .otp-pdot.filled { background: #007a33; transform: scale(1.3); }
       `}</style>
+
+      {/* Theme Toggle Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
 
       <div className={`verify-card${mounted ? " mounted" : ""}${shake ? " shake" : ""}`}>
         <div className="verify-stripe" />

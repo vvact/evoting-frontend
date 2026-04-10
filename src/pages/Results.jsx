@@ -8,6 +8,8 @@ import {
 } from "recharts";
 import API from "../api";
 import Navbar from "../components/Navbar";
+import { useTheme } from "../context/ThemeContext";
+import ThemeToggle from "../components/ThemeToggle";
 
 // ── Palette ──
 const PALETTE = [
@@ -16,15 +18,18 @@ const PALETTE = [
 ];
 
 // ── Shared tooltip style ──
-const TT = {
-  background: "#1c1c1c",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: 10,
-  color: "#fff",
-  fontSize: 12,
-  fontFamily: "'DM Sans', sans-serif",
-  padding: "8px 12px",
-};
+function getTooltipStyle(isDark) {
+  return {
+    background: isDark ? "#1c1c2e" : "#ffffff",
+    border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
+    borderRadius: 10,
+    color: isDark ? "#fff" : "#1a1a2e",
+    fontSize: 12,
+    fontFamily: "'DM Sans', sans-serif",
+    padding: "8px 12px",
+    boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.1)",
+  };
+}
 
 // ── Count-up hook ──
 function useCountUp(target, duration = 1000) {
@@ -45,53 +50,54 @@ function useCountUp(target, duration = 1000) {
   return val;
 }
 
-function StatCard({ label, value, sub, color = "#d21034", delay = 0 }) {
+function StatCard({ label, value, sub, color = "#d21034", delay = 0, isDark }) {
   const count = useCountUp(typeof value === "number" ? value : 0);
   return (
     <div style={{
-      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+      background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
+      border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
       borderRadius: 14, padding: "1rem 1.25rem",
       borderTop: `3px solid ${color}`,
       animation: `fadeUp 0.5s ease ${delay}s both`,
     }}>
-      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>{label}</div>
-      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: "#fff" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.5)", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: isDark ? "#fff" : "#1a1a2e" }}>
         {typeof value === "number" ? count.toLocaleString() : value}
       </div>
-      {sub && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.4)", marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }
 
-function Avatar({ src, name, size = 44 }) {
+function Avatar({ src, name, size = 44, isDark }) {
   const [ok, setOk] = useState(false);
   return (
     <img src={src} alt={name}
       onLoad={() => setOk(true)}
-      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1a1a1a&color=666&size=128`; setOk(true); }}
-      style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,0.1)", flexShrink: 0, opacity: ok ? 1 : 0, transition: "opacity 0.3s" }}
+      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${isDark ? '1a1a2e' : 'e9edf2'}&color=${isDark ? '888' : '666'}&size=128`; setOk(true); }}
+      style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: isDark ? "2px solid rgba(255,255,255,0.1)" : "2px solid rgba(0,0,0,0.1)", flexShrink: 0, opacity: ok ? 1 : 0, transition: "opacity 0.3s" }}
     />
   );
 }
 
-function ChartTabBtn({ active, onClick, icon, label }) {
+function ChartTabBtn({ active, onClick, icon, label, isDark }) {
   return (
     <button onClick={onClick} style={{
       display: "flex", alignItems: "center", gap: 5,
       padding: "5px 13px", borderRadius: 8, border: "none", cursor: "pointer",
       fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 500,
-      background: active ? "rgba(255,255,255,0.12)" : "none",
-      color: active ? "#fff" : "rgba(255,255,255,0.38)",
+      background: active ? (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)") : "none",
+      color: active ? (isDark ? "#fff" : "#1a1a2e") : (isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.5)"),
       transition: "background 0.2s, color 0.2s",
     }}>{icon} {label}</button>
   );
 }
 
-function SectionCard({ children, style = {} }) {
+function SectionCard({ children, style = {}, isDark }) {
   return (
     <div style={{
-      background: "rgba(255,255,255,0.02)",
-      border: "1px solid rgba(255,255,255,0.07)",
+      background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+      border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.08)",
       borderRadius: 18, overflow: "hidden",
       marginBottom: "1.75rem",
       ...style,
@@ -99,19 +105,19 @@ function SectionCard({ children, style = {} }) {
   );
 }
 
-function SectionHead({ children }) {
+function SectionHead({ children, isDark }) {
   return (
     <div style={{
       padding: "1.1rem 1.5rem",
-      borderBottom: "1px solid rgba(255,255,255,0.06)",
+      borderBottom: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
       display: "flex", alignItems: "center", justifyContent: "space-between",
       flexWrap: "wrap", gap: 10,
     }}>{children}</div>
   );
 }
 
-function SectionTitle({ children }) {
-  return <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 700, color: "#fff" }}>{children}</span>;
+function SectionTitle({ children, isDark }) {
+  return <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 700, color: isDark ? "#fff" : "#1a1a2e" }}>{children}</span>;
 }
 
 // ── Generate mock trend data ──
@@ -135,6 +141,7 @@ function makeTrend(candidates, frame) {
 
 export default function Results({ user: propUser }) {
   const [user] = useState(() => propUser || JSON.parse(localStorage.getItem("user")));
+  const { theme } = useTheme();
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -144,6 +151,8 @@ export default function Results({ user: propUser }) {
   const [showComparison, setShowComparison] = useState(false);
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
+
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     setMounted(true);
@@ -179,22 +188,38 @@ export default function Results({ user: propUser }) {
     return obj;
   }) : [];
 
+  const tooltipStyle = getTooltipStyle(isDark);
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0a0a0a; }
+        
         @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
         @keyframes shimmer { 0%,100%{opacity:.5} 50%{opacity:1} }
         @keyframes popIn { from{opacity:0;transform:scale(.9)} to{opacity:1;transform:none} }
 
-        .rr { min-height:100vh; background:#0a0a0a; font-family:'DM Sans',sans-serif;
-          background-image:
-            radial-gradient(ellipse at 10% 20%, rgba(210,16,52,.05) 0%,transparent 50%),
-            radial-gradient(ellipse at 85% 80%, rgba(0,122,51,.05) 0%,transparent 50%);
+        .rr {
+          min-height:100vh;
+          font-family:'DM Sans',sans-serif;
           padding-bottom:5rem;
+          transition: background 0.3s ease;
         }
+        
+        /* Light mode */
+        .rr.light-mode {
+          background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+        }
+        
+        /* Dark mode */
+        .rr.dark-mode {
+          background: #1a1a2e;
+          background-image:
+            radial-gradient(ellipse at 10% 20%, rgba(210,16,52,.08) 0%, transparent 50%),
+            radial-gradient(ellipse at 85% 80%, rgba(0,122,51,.06) 0%, transparent 50%);
+        }
+        
         .rr-inner { max-width:1080px; margin:0 auto; padding:2rem 1.25rem;
           opacity:0; transform:translateY(16px);
           transition:opacity .45s ease, transform .45s ease;
@@ -203,32 +228,68 @@ export default function Results({ user: propUser }) {
 
         .pos-tabs { display:flex; flex-wrap:wrap; gap:6px; }
         .pos-tab {
-          padding:6px 16px; border-radius:99px; border:1px solid rgba(255,255,255,.1);
+          padding:6px 16px; border-radius:99px;
           font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500;
-          color:rgba(255,255,255,.4); background:none; cursor:pointer;
+          background:none; cursor:pointer;
           transition:background .2s, color .2s, border-color .2s;
         }
-        .pos-tab.active { background:rgba(210,16,52,.15); border-color:rgba(210,16,52,.4); color:#fff; }
-        .pos-tab:hover:not(.active) { background:rgba(255,255,255,.06); color:rgba(255,255,255,.7); }
+        .light-mode .pos-tab {
+          border: 1px solid rgba(0,0,0,0.1);
+          color: rgba(0,0,0,0.5);
+        }
+        .dark-mode .pos-tab {
+          border: 1px solid rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.4);
+        }
+        .light-mode .pos-tab.active {
+          background: rgba(210,16,52,0.1);
+          border-color: rgba(210,16,52,0.3);
+          color: #d21034;
+        }
+        .dark-mode .pos-tab.active {
+          background: rgba(210,16,52,0.15);
+          border-color: rgba(210,16,52,0.4);
+          color: #fff;
+        }
+        .light-mode .pos-tab:hover:not(.active) { background: rgba(0,0,0,0.05); color: rgba(0,0,0,0.7); }
+        .dark-mode .pos-tab:hover:not(.active) { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
 
-        .chart-tabs { display:flex; gap:3px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:3px; }
+        .chart-tabs { display:flex; gap:3px; border-radius:10px; padding:3px; }
+        .light-mode .chart-tabs { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); }
+        .dark-mode .chart-tabs { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
 
-        .skel { background:rgba(255,255,255,.06); border-radius:8px; animation:shimmer 1.5s infinite; }
+        .skel { border-radius:8px; animation:shimmer 1.5s infinite; }
+        .light-mode .skel { background: rgba(0,0,0,0.06); }
+        .dark-mode .skel { background: rgba(255,255,255,0.06); }
 
-        .cand-row { display:flex; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+        .cand-row { display:flex; align-items:center; gap:14px; padding:13px 0; }
+        .light-mode .cand-row { border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .dark-mode .cand-row { border-bottom: 1px solid rgba(255,255,255,0.05); }
         .cand-row:last-child { border-bottom:none; }
 
         .cmp-table { width:100%; border-collapse:collapse; }
-        .cmp-table th { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:rgba(255,255,255,.3); padding:10px 14px; text-align:left; border-bottom:1px solid rgba(255,255,255,.08); }
-        .cmp-table td { font-size:13px; color:rgba(255,255,255,.65); padding:11px 14px; border-bottom:1px solid rgba(255,255,255,.05); }
+        .light-mode .cmp-table th { color: rgba(0,0,0,0.5); border-bottom: 1px solid rgba(0,0,0,0.08); }
+        .dark-mode .cmp-table th { color: rgba(255,255,255,0.3); border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .cmp-table th { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; padding:10px 14px; text-align:left; }
+        .light-mode .cmp-table td { color: rgba(0,0,0,0.65); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .dark-mode .cmp-table td { color: rgba(255,255,255,0.65); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .cmp-table td { font-size:13px; padding:11px 14px; }
         .cmp-table tr:last-child td { border:none; }
-        .cmp-table tr:hover td { background:rgba(255,255,255,.03); }
+        .light-mode .cmp-table tr:hover td { background: rgba(0,0,0,0.03); }
+        .dark-mode .cmp-table tr:hover td { background: rgba(255,255,255,0.03); }
 
         .winner-banner {
           display:flex; align-items:center; gap:14px;
-          background:rgba(0,122,51,.08); border:1px solid rgba(0,180,80,.18);
           border-radius:14px; padding:1rem 1.25rem; margin-bottom:1rem;
           animation:popIn .4s ease;
+        }
+        .light-mode .winner-banner {
+          background: rgba(0,122,51,0.08);
+          border: 1px solid rgba(0,122,51,0.18);
+        }
+        .dark-mode .winner-banner {
+          background: rgba(0,122,51,0.08);
+          border: 1px solid rgba(0,180,80,0.18);
         }
         .margin-pill { display:inline-flex; padding:2px 9px; border-radius:99px; font-size:10px; font-weight:700; }
 
@@ -239,22 +300,27 @@ export default function Results({ user: propUser }) {
 
       <Navbar user={user} />
 
-      <div className="rr">
+      <div className={`rr ${isDark ? 'dark-mode' : 'light-mode'}`}>
+        {/* Theme Toggle Button */}
+        <div className="fixed top-20 right-4 z-50">
+          <ThemeToggle />
+        </div>
+
         <div className={`rr-inner${mounted ? " on" : ""}`}>
 
           {/* ── Header ── */}
           <div style={{ marginBottom: "1.75rem" }}>
             <button onClick={() => navigate("/dashboard")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.3)", fontFamily: "'DM Sans',sans-serif", fontSize: 13, marginBottom: "1rem", padding: 0 }}
-              onMouseEnter={(e) => e.currentTarget.style.color = "rgba(255,255,255,.65)"}
-              onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,.3)"}
+              style={{ background: "none", border: "none", cursor: "pointer", color: isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.5)", fontFamily: "'DM Sans',sans-serif", fontSize: 13, marginBottom: "1rem", padding: 0 }}
+              onMouseEnter={(e) => e.currentTarget.style.color = isDark ? "rgba(255,255,255,.65)" : "rgba(0,0,0,.7)"}
+              onMouseLeave={(e) => e.currentTarget.style.color = isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.5)"}
             >← Back to ballot</button>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
               <div>
-                <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 26, fontWeight: 700, color: "#fff", letterSpacing: "-0.4px" }}>
+                <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 26, fontWeight: 700, color: isDark ? "#fff" : "#1a1a2e", letterSpacing: "-0.4px" }}>
                   📊 {results?.election_title || "Election"} Results
                 </div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,.3)", marginTop: 4 }}>Live results · Auto-updating</div>
+                <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.5)", marginTop: 4 }}>Live results · Auto-updating</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 {["#000","#d21034","#007a33"].map((c) => <span key={c} style={{ width: 28, height: 5, borderRadius: 3, background: c, display: "block" }} />)}
@@ -269,7 +335,7 @@ export default function Results({ user: propUser }) {
                 {[1,2,3,4].map((i) => <div key={i} className="skel" style={{ height: 80 }} />)}
               </div>
               {[1,2].map((i) => (
-                <div key={i} style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 18, padding: "1.5rem", marginBottom: 16 }}>
+                <div key={i} style={{ background: isDark ? "rgba(255,255,255,.02)" : "rgba(0,0,0,.02)", border: isDark ? "1px solid rgba(255,255,255,.07)" : "1px solid rgba(0,0,0,.08)", borderRadius: 18, padding: "1.5rem", marginBottom: 16 }}>
                   <div className="skel" style={{ width: "40%", height: 16, marginBottom: 16 }} />
                   <div className="skel" style={{ height: 260 }} />
                 </div>
@@ -281,8 +347,8 @@ export default function Results({ user: propUser }) {
           {!loading && error && (
             <div style={{ minHeight: "50vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, textAlign: "center" }}>
               <div style={{ fontSize: 44 }}>📢</div>
-              <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 20, fontWeight: 700, color: "#fff" }}>Something went wrong</div>
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,.35)" }}>{error}</div>
+              <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 20, fontWeight: 700, color: isDark ? "#fff" : "#1a1a2e" }}>Something went wrong</div>
+              <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.5)" }}>{error}</div>
               <button onClick={() => navigate("/dashboard")} style={{ marginTop: 12, padding: "10px 22px", background: "#d21034", border: "none", borderRadius: 10, color: "#fff", fontFamily: "'Sora',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>← Back to ballot</button>
             </div>
           )}
@@ -291,19 +357,19 @@ export default function Results({ user: propUser }) {
             <>
               {/* ── Stat cards ── */}
               <div className="stats-grid">
-                <StatCard label="Total votes" value={totalAll} sub="across all positions" color="#d21034" delay={0} />
-                <StatCard label="Positions" value={results.positions.length} sub="contested" color="#007a33" delay={0.05} />
-                <StatCard label="Candidates" value={allCandidates} sub="on the ballot" color="#3b82f6" delay={0.1} />
-                <StatCard label="Leading party" value={leader?.party || "—"} sub={leader ? `in ${position?.position_title || ""}` : ""} color="#f59e0b" delay={0.15} />
+                <StatCard label="Total votes" value={totalAll} sub="across all positions" color="#d21034" delay={0} isDark={isDark} />
+                <StatCard label="Positions" value={results.positions.length} sub="contested" color="#007a33" delay={0.05} isDark={isDark} />
+                <StatCard label="Candidates" value={allCandidates} sub="on the ballot" color="#3b82f6" delay={0.1} isDark={isDark} />
+                <StatCard label="Leading party" value={leader?.party || "—"} sub={leader ? `in ${position?.position_title || ""}` : ""} color="#f59e0b" delay={0.15} isDark={isDark} />
               </div>
 
               {/* ── Position selector ── */}
-              <SectionCard>
-                <SectionHead>
-                  <SectionTitle>Select position</SectionTitle>
+              <SectionCard isDark={isDark}>
+                <SectionHead isDark={isDark}>
+                  <SectionTitle isDark={isDark}>Select position</SectionTitle>
                   <button
                     onClick={() => setShowComparison((s) => !s)}
-                    style={{ padding: "5px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,.1)", background: showComparison ? "rgba(210,16,52,.15)" : "none", color: showComparison ? "#fff" : "rgba(255,255,255,.4)", fontFamily: "'DM Sans',sans-serif", fontSize: 12, cursor: "pointer", transition: "all .2s" }}
+                    style={{ padding: "5px 14px", borderRadius: 8, border: isDark ? "1px solid rgba(255,255,255,.1)" : "1px solid rgba(0,0,0,.1)", background: showComparison ? (isDark ? "rgba(210,16,52,.15)" : "rgba(210,16,52,.08)") : "none", color: showComparison ? (isDark ? "#fff" : "#d21034") : (isDark ? "rgba(255,255,255,.4)" : "rgba(0,0,0,.5)"), fontFamily: "'DM Sans',sans-serif", fontSize: 12, cursor: "pointer", transition: "all .2s" }}
                   >
                     {showComparison ? "✕ Hide" : "⊞ Show"} comparison
                   </button>
@@ -325,34 +391,34 @@ export default function Results({ user: propUser }) {
                   {/* ── Winner banner ── */}
                   {leader && posTotal > 0 && (
                     <div className="winner-banner">
-                      <Avatar src={leader.image_url} name={leader.name} size={52} />
+                      <Avatar src={leader.image_url} name={leader.name} size={52} isDark={isDark} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(0,200,80,.7)", marginBottom: 2 }}>🏆 Current leader — {position.position_title}</div>
-                        <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 17, fontWeight: 700, color: "#fff" }}>{leader.name}</div>
-                        <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)", marginTop: 2 }}>
+                        <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1a1a2e" }}>{leader.name}</div>
+                        <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.5)", marginTop: 2 }}>
                           {leader.votes.toLocaleString()} votes · {posTotal ? ((leader.votes / posTotal) * 100).toFixed(1) : 0}% share
                         </div>
                       </div>
                       {sorted[1] && (
                         <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 11, color: "rgba(255,255,255,.3)" }}>ahead by</div>
+                          <div style={{ fontSize: 11, color: isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.5)" }}>ahead by</div>
                           <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 20, fontWeight: 700, color: "#4ade80" }}>
                             {(leader.votes - sorted[1].votes).toLocaleString()}
                           </div>
-                          <div style={{ fontSize: 11, color: "rgba(255,255,255,.3)" }}>votes</div>
+                          <div style={{ fontSize: 11, color: isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.5)" }}>votes</div>
                         </div>
                       )}
                     </div>
                   )}
 
                   {/* ── Chart card ── */}
-                  <SectionCard>
-                    <SectionHead>
-                      <SectionTitle>Vote distribution — {position.position_title}</SectionTitle>
+                  <SectionCard isDark={isDark}>
+                    <SectionHead isDark={isDark}>
+                      <SectionTitle isDark={isDark}>Vote distribution — {position.position_title}</SectionTitle>
                       <div className="chart-tabs">
-                        <ChartTabBtn active={chartType === "bar"} onClick={() => setChartType("bar")} icon="▊" label="Bar" />
-                        <ChartTabBtn active={chartType === "pie"} onClick={() => setChartType("pie")} icon="◕" label="Donut" />
-                        <ChartTabBtn active={chartType === "radar"} onClick={() => setChartType("radar")} icon="◎" label="Radar" />
+                        <ChartTabBtn active={chartType === "bar"} onClick={() => setChartType("bar")} icon="▊" label="Bar" isDark={isDark} />
+                        <ChartTabBtn active={chartType === "pie"} onClick={() => setChartType("pie")} icon="◕" label="Donut" isDark={isDark} />
+                        <ChartTabBtn active={chartType === "radar"} onClick={() => setChartType("radar")} icon="◎" label="Radar" isDark={isDark} />
                       </div>
                     </SectionHead>
                     <div style={{ padding: "1.25rem 1.5rem" }}>
@@ -360,10 +426,10 @@ export default function Results({ user: propUser }) {
                         <ResponsiveContainer>
                           {chartType === "bar" ? (
                             <BarChart data={barData} margin={{ top: 8, right: 16, left: -8, bottom: 16 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.06)" vertical={false} />
-                              <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,.4)", fontSize: 11, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
-                              <YAxis tick={{ fill: "rgba(255,255,255,.3)", fontSize: 10, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
-                              <Tooltip contentStyle={TT} cursor={{ fill: "rgba(255,255,255,.03)" }}
+                              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)"} vertical={false} />
+                              <XAxis dataKey="name" tick={{ fill: isDark ? "rgba(255,255,255,.4)" : "rgba(0,0,0,.5)", fontSize: 11, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                              <YAxis tick={{ fill: isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.4)", fontSize: 10, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: isDark ? "rgba(255,255,255,.03)" : "rgba(0,0,0,.03)" }}
                                 formatter={(v, n, p) => [`${v.toLocaleString()} votes (${p.payload.pct}%)`, p.payload.fullName]} />
                               <Bar dataKey="votes" radius={[7,7,0,0]} maxBarSize={54}>
                                 {barData.map((e, i) => <Cell key={i} fill={e.fill} />)}
@@ -373,18 +439,18 @@ export default function Results({ user: propUser }) {
                             <PieChart>
                               <Pie data={pieData} cx="50%" cy="50%" innerRadius="40%" outerRadius="66%"
                                 paddingAngle={3} dataKey="value" animationBegin={0} animationDuration={800} labelLine={false}>
-                                {pieData.map((e, i) => <Cell key={i} fill={e.color} stroke="rgba(0,0,0,.3)" strokeWidth={1} />)}
+                                {pieData.map((e, i) => <Cell key={i} fill={e.color} stroke={isDark ? "rgba(0,0,0,.3)" : "rgba(255,255,255,.3)"} strokeWidth={1} />)}
                               </Pie>
-                              <Tooltip contentStyle={TT} formatter={(v, n, p) => [`${v.toLocaleString()} votes`, p.payload.fullName]} />
+                              <Tooltip contentStyle={tooltipStyle} formatter={(v, n, p) => [`${v.toLocaleString()} votes`, p.payload.fullName]} />
                               <Legend iconType="circle" iconSize={8}
-                                formatter={(v, e) => <span style={{ color: "rgba(255,255,255,.5)", fontSize: 12, fontFamily: "DM Sans" }}>{e.payload.fullName}</span>} />
+                                formatter={(v, e) => <span style={{ color: isDark ? "rgba(255,255,255,.5)" : "rgba(0,0,0,.6)", fontSize: 12, fontFamily: "DM Sans" }}>{e.payload.fullName}</span>} />
                             </PieChart>
                           ) : (
                             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                              <PolarGrid stroke="rgba(255,255,255,.08)" />
-                              <PolarAngleAxis dataKey="subject" tick={{ fill: "rgba(255,255,255,.4)", fontSize: 11, fontFamily: "DM Sans" }} />
+                              <PolarGrid stroke={isDark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.08)"} />
+                              <PolarAngleAxis dataKey="subject" tick={{ fill: isDark ? "rgba(255,255,255,.4)" : "rgba(0,0,0,.5)", fontSize: 11, fontFamily: "DM Sans" }} />
                               <Radar name="Votes" dataKey="votes" stroke="#d21034" fill="#d21034" fillOpacity={0.15} strokeWidth={2} />
-                              <Tooltip contentStyle={TT} formatter={(v) => [v.toLocaleString() + " votes", "Votes"]} />
+                              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [v.toLocaleString() + " votes", "Votes"]} />
                             </RadarChart>
                           )}
                         </ResponsiveContainer>
@@ -393,16 +459,16 @@ export default function Results({ user: propUser }) {
                   </SectionCard>
 
                   {/* ── Trend line ── */}
-                  <SectionCard>
-                    <SectionHead>
-                      <SectionTitle>📈 Voting trend</SectionTitle>
-                      <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 10, padding: 3 }}>
+                  <SectionCard isDark={isDark}>
+                    <SectionHead isDark={isDark}>
+                      <SectionTitle isDark={isDark}>📈 Voting trend</SectionTitle>
+                      <div style={{ display: "flex", gap: 4, background: isDark ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.04)", border: isDark ? "1px solid rgba(255,255,255,.08)" : "1px solid rgba(0,0,0,.08)", borderRadius: 10, padding: 3 }}>
                         {["hourly","weekly"].map((f) => (
                           <button key={f} onClick={() => setTrendFrame(f)} style={{
                             padding: "4px 13px", borderRadius: 7, border: "none", cursor: "pointer",
                             fontFamily: "'DM Sans',sans-serif", fontSize: 12,
-                            background: trendFrame === f ? "rgba(255,255,255,.12)" : "none",
-                            color: trendFrame === f ? "#fff" : "rgba(255,255,255,.35)",
+                            background: trendFrame === f ? (isDark ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.08)") : "none",
+                            color: trendFrame === f ? (isDark ? "#fff" : "#1a1a2e") : (isDark ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.5)"),
                             transition: "all .2s",
                           }}>{f.charAt(0).toUpperCase() + f.slice(1)}</button>
                         ))}
@@ -412,12 +478,12 @@ export default function Results({ user: propUser }) {
                       <div style={{ width: "100%", height: 250 }}>
                         <ResponsiveContainer>
                           <LineChart data={lineChartData} margin={{ top: 8, right: 16, left: -8, bottom: 8 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.05)" vertical={false} />
-                            <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,.35)", fontSize: 11, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fill: "rgba(255,255,255,.3)", fontSize: 10, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
-                            <Tooltip contentStyle={TT} formatter={(v, n) => [v.toLocaleString() + " votes", n]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.05)"} vertical={false} />
+                            <XAxis dataKey="label" tick={{ fill: isDark ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.5)", fontSize: 11, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.4)", fontSize: 10, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={tooltipStyle} formatter={(v, n) => [v.toLocaleString() + " votes", n]} />
                             <Legend iconType="circle" iconSize={7}
-                              formatter={(v) => <span style={{ color: "rgba(255,255,255,.5)", fontSize: 12, fontFamily: "DM Sans" }}>{v}</span>} />
+                              formatter={(v) => <span style={{ color: isDark ? "rgba(255,255,255,.5)" : "rgba(0,0,0,.6)", fontSize: 12, fontFamily: "DM Sans" }}>{v}</span>} />
                             {trendData?.series.map((s) => (
                               <Line key={s.name} type="monotone" dataKey={s.name}
                                 stroke={s.color} strokeWidth={2.5}
@@ -428,17 +494,17 @@ export default function Results({ user: propUser }) {
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,.2)", marginTop: 8, textAlign: "right" }}>
+                      <div style={{ fontSize: 11, color: isDark ? "rgba(255,255,255,.2)" : "rgba(0,0,0,.3)", marginTop: 8, textAlign: "right" }}>
                         * Simulated cumulative trend data
                       </div>
                     </div>
                   </SectionCard>
 
                   {/* ── Candidate leaderboard ── */}
-                  <SectionCard>
-                    <SectionHead>
-                      <SectionTitle>Candidate breakdown</SectionTitle>
-                      <span style={{ fontSize: 12, color: "rgba(255,255,255,.3)" }}>{posTotal.toLocaleString()} total votes</span>
+                  <SectionCard isDark={isDark}>
+                    <SectionHead isDark={isDark}>
+                      <SectionTitle isDark={isDark}>Candidate breakdown</SectionTitle>
+                      <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.5)" }}>{posTotal.toLocaleString()} total votes</span>
                     </SectionHead>
                     <div style={{ padding: "0.5rem 1.5rem 1rem" }}>
                       {sorted.map((c, rank) => {
@@ -448,13 +514,13 @@ export default function Results({ user: propUser }) {
                           ? ((c.votes - sorted[1].votes) / posTotal * 100).toFixed(1) : null;
                         return (
                           <div key={c.candidate_id} className="cand-row">
-                            <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 18, fontWeight: 700, color: rank === 0 ? color : "rgba(255,255,255,.15)", width: 26, textAlign: "center", flexShrink: 0 }}>
+                            <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 18, fontWeight: 700, color: rank === 0 ? color : (isDark ? "rgba(255,255,255,.15)" : "rgba(0,0,0,.15)"), width: 26, textAlign: "center", flexShrink: 0 }}>
                               {rank === 0 ? "👑" : rank + 1}
                             </div>
-                            <Avatar src={c.image_url} name={c.name} size={42} />
+                            <Avatar src={c.image_url} name={c.name} size={42} isDark={isDark} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-                                <span style={{ fontFamily: "'Sora',sans-serif", fontSize: 14, fontWeight: 600, color: "#fff" }}>{c.name}</span>
+                                <span style={{ fontFamily: "'Sora',sans-serif", fontSize: 14, fontWeight: 600, color: isDark ? "#fff" : "#1a1a2e" }}>{c.name}</span>
                                 <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: `${color}1a`, border: `1px solid ${color}44`, color }}>
                                   {c.party}
                                 </span>
@@ -464,11 +530,11 @@ export default function Results({ user: propUser }) {
                                   </span>
                                 )}
                               </div>
-                              <div style={{ height: 5, background: "rgba(255,255,255,.07)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
+                              <div style={{ height: 5, background: isDark ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
                                 <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 99, transition: "width 1s cubic-bezier(.4,0,.2,1)" }} />
                               </div>
                               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ fontSize: 12, color: "rgba(255,255,255,.35)" }}>{c.votes.toLocaleString()} votes</span>
+                                <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.5)" }}>{c.votes.toLocaleString()} votes</span>
                                 <span style={{ fontFamily: "'Sora',sans-serif", fontSize: 13, fontWeight: 700, color }}>{pct.toFixed(1)}%</span>
                               </div>
                             </div>
@@ -482,9 +548,9 @@ export default function Results({ user: propUser }) {
 
               {/* ── Comparison table ── */}
               {showComparison && (
-                <SectionCard style={{ animation: "fadeUp .35s ease" }}>
-                  <SectionHead>
-                    <SectionTitle>🏆 All positions — at a glance</SectionTitle>
+                <SectionCard isDark={isDark} style={{ animation: "fadeUp .35s ease" }}>
+                  <SectionHead isDark={isDark}>
+                    <SectionTitle isDark={isDark}>🏆 All positions — at a glance</SectionTitle>
                   </SectionHead>
                   <div style={{ padding: "0.75rem 1rem", overflowX: "auto" }}>
                     <table className="cmp-table">
@@ -509,26 +575,26 @@ export default function Results({ user: propUser }) {
                           return (
                             <tr key={pos.position_id} style={{ cursor: "pointer" }}
                               onClick={() => { setActivePosId(pos.position_id); window.scrollTo({ top: 300, behavior: "smooth" }); }}>
-                              <td style={{ color: "#fff", fontWeight: 500 }}>{pos.position_title}</td>
-                              <td style={{ color: "#fff" }}>{w.name}</td>
+                              <td style={{ color: isDark ? "#fff" : "#1a1a2e", fontWeight: 500 }}>{pos.position_title}</td>
+                              <td style={{ color: isDark ? "#fff" : "#1a1a2e" }}>{w.name}</td>
                               <td>
-                                <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: "rgba(255,255,255,.07)", color: "rgba(255,255,255,.6)", border: "1px solid rgba(255,255,255,.12)" }}>
+                                <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: isDark ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.05)", color: isDark ? "rgba(255,255,255,.6)" : "rgba(0,0,0,.6)", border: isDark ? "1px solid rgba(255,255,255,.12)" : "1px solid rgba(0,0,0,.1)" }}>
                                   {w.party}
                                 </span>
                               </td>
                               <td>{w.votes.toLocaleString()}</td>
                               <td>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                  <div style={{ width: 60, height: 4, background: "rgba(255,255,255,.08)", borderRadius: 99, overflow: "hidden" }}>
+                                  <div style={{ width: 60, height: 4, background: isDark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.08)", borderRadius: 99, overflow: "hidden" }}>
                                     <div style={{ height: "100%", width: `${pct}%`, background: "#007a33", borderRadius: 99 }} />
                                   </div>
-                                  <span style={{ fontSize: 12, color: "rgba(255,255,255,.55)" }}>{pct}%</span>
+                                  <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.6)" }}>{pct}%</span>
                                 </div>
                               </td>
                               <td>
                                 <span className="margin-pill" style={{
-                                  background: tight ? "rgba(210,16,52,.12)" : "rgba(0,122,51,.12)",
-                                  border: `1px solid ${tight ? "rgba(210,16,52,.3)" : "rgba(0,180,80,.25)"}`,
+                                  background: tight ? (isDark ? "rgba(210,16,52,.12)" : "rgba(210,16,52,.08)") : (isDark ? "rgba(0,122,51,.12)" : "rgba(0,122,51,.08)"),
+                                  border: `1px solid ${tight ? (isDark ? "rgba(210,16,52,.3)" : "rgba(210,16,52,.2)") : (isDark ? "rgba(0,180,80,.25)" : "rgba(0,122,51,.2)")}`,
                                   color: tight ? "#fc8181" : "#4ade80",
                                 }}>
                                   {tight ? "⚡ Tight race" : `+${margin}% lead`}

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Navbar({ user, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -8,6 +10,9 @@ export default function Navbar({ user, onLogout }) {
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme } = useTheme();
+
+  const isDark = theme === 'dark';
 
   // Shrink navbar on scroll
   useEffect(() => {
@@ -55,18 +60,31 @@ export default function Navbar({ user, onLogout }) {
           font-family: 'DM Sans', sans-serif;
           transition: background 0.3s, border-color 0.3s, padding 0.3s, box-shadow 0.3s;
         }
-        .navbar.transparent {
+        
+        /* Light mode navbar */
+        .navbar.light-mode {
+          background: rgba(255,255,255,0.95);
+          border-bottom: 1px solid rgba(0,0,0,0.08);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+        }
+        .navbar.light-mode.scrolled {
+          background: rgba(255,255,255,0.98);
+          border-bottom: 1px solid rgba(0,0,0,0.1);
+          box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+        }
+        
+        /* Dark mode navbar */
+        .navbar.dark-mode {
           background: rgba(10,10,10,0.85);
           border-bottom: 1px solid rgba(255,255,255,0.06);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
         }
-        .navbar.scrolled {
+        .navbar.dark-mode.scrolled {
           background: rgba(8,8,8,0.97);
           border-bottom: 1px solid rgba(255,255,255,0.09);
           box-shadow: 0 4px 32px rgba(0,0,0,0.4);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
         }
 
         .navbar-stripe {
@@ -99,22 +117,26 @@ export default function Navbar({ user, onLogout }) {
           font-family: 'Sora', sans-serif;
           font-size: 15px;
           font-weight: 700;
-          color: #fff;
-          letter-spacing: -0.2px;
+          transition: color 0.3s;
         }
+        .light-mode .brand-text { color: #1a1a2e; }
+        .dark-mode .brand-text { color: #fff; }
         .brand-text span { color: #d21034; }
         .brand-divider {
           width: 1px; height: 18px;
-          background: rgba(255,255,255,0.12);
-          margin: 0 2px;
+          transition: background 0.3s;
         }
+        .light-mode .brand-divider { background: rgba(0,0,0,0.12); }
+        .dark-mode .brand-divider { background: rgba(255,255,255,0.12); }
         .brand-sub {
           font-size: 11px;
           font-weight: 500;
-          color: rgba(255,255,255,0.3);
           letter-spacing: 0.04em;
           text-transform: uppercase;
+          transition: color 0.3s;
         }
+        .light-mode .brand-sub { color: rgba(0,0,0,0.4); }
+        .dark-mode .brand-sub { color: rgba(255,255,255,0.3); }
 
         /* ── Desktop nav links ── */
         .nav-links {
@@ -132,16 +154,19 @@ export default function Navbar({ user, onLogout }) {
           border-radius: 8px;
           font-size: 13px;
           font-weight: 500;
-          color: rgba(255,255,255,0.45);
           text-decoration: none;
-          transition: color 0.2s, background 0.2s;
+          transition: all 0.2s;
           position: relative;
         }
-        .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
-        .nav-link.active {
-          color: #fff;
-          background: rgba(255,255,255,0.08);
-        }
+        .light-mode .nav-link { color: rgba(0,0,0,0.5); }
+        .dark-mode .nav-link { color: rgba(255,255,255,0.45); }
+        
+        .light-mode .nav-link:hover { color: #1a1a2e; background: rgba(0,0,0,0.05); }
+        .dark-mode .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+        
+        .light-mode .nav-link.active { color: #1a1a2e; background: rgba(0,0,0,0.08); }
+        .dark-mode .nav-link.active { color: #fff; background: rgba(255,255,255,0.08); }
+        
         .nav-link.active::after {
           content: '';
           position: absolute;
@@ -164,16 +189,27 @@ export default function Navbar({ user, onLogout }) {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
           border-radius: 99px;
           padding: 4px 12px 4px 4px;
           cursor: pointer;
-          transition: background 0.2s, border-color 0.2s;
-          color: #fff;
+          transition: all 0.2s;
           font-family: 'DM Sans', sans-serif;
         }
-        .user-btn:hover {
+        .light-mode .user-btn {
+          background: rgba(0,0,0,0.04);
+          border: 1px solid rgba(0,0,0,0.1);
+          color: #1a1a2e;
+        }
+        .dark-mode .user-btn {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: #fff;
+        }
+        .light-mode .user-btn:hover {
+          background: rgba(0,0,0,0.08);
+          border-color: rgba(0,0,0,0.18);
+        }
+        .dark-mode .user-btn:hover {
           background: rgba(255,255,255,0.08);
           border-color: rgba(255,255,255,0.18);
         }
@@ -191,10 +227,12 @@ export default function Navbar({ user, onLogout }) {
           text-overflow: ellipsis; white-space: nowrap;
         }
         .user-chevron {
-          font-size: 10px; color: rgba(255,255,255,0.35);
-          transition: transform 0.25s;
+          font-size: 10px;
+          transition: transform 0.25s, color 0.3s;
           margin-left: 2px;
         }
+        .light-mode .user-chevron { color: rgba(0,0,0,0.35); }
+        .dark-mode .user-chevron { color: rgba(255,255,255,0.35); }
         .user-chevron.open { transform: rotate(180deg); }
 
         /* ── Dropdown ── */
@@ -203,13 +241,20 @@ export default function Navbar({ user, onLogout }) {
           top: calc(100% + 8px);
           right: 0;
           min-width: 220px;
-          background: #151515;
-          border: 1px solid rgba(255,255,255,0.1);
           border-radius: 14px;
           overflow: hidden;
-          box-shadow: 0 16px 48px rgba(0,0,0,0.5);
           animation: dropIn 0.2s cubic-bezier(0.175,0.885,0.32,1.275);
           z-index: 100;
+        }
+        .light-mode .user-dropdown {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.1);
+          box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+        }
+        .dark-mode .user-dropdown {
+          background: #16213e;
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 16px 48px rgba(0,0,0,0.5);
         }
         @keyframes dropIn {
           from { opacity: 0; transform: translateY(-8px) scale(0.96); }
@@ -218,24 +263,44 @@ export default function Navbar({ user, onLogout }) {
 
         .dropdown-header {
           padding: 14px 16px 10px;
-          border-bottom: 1px solid rgba(255,255,255,0.07);
+          transition: border-color 0.3s;
         }
+        .light-mode .dropdown-header { border-bottom: 1px solid rgba(0,0,0,0.07); }
+        .dark-mode .dropdown-header { border-bottom: 1px solid rgba(255,255,255,0.07); }
+        
         .dropdown-name {
           font-family: 'Sora', sans-serif;
-          font-size: 14px; font-weight: 700; color: #fff;
+          font-size: 14px; font-weight: 700;
+          transition: color 0.3s;
         }
+        .light-mode .dropdown-name { color: #1a1a2e; }
+        .dark-mode .dropdown-name { color: #fff; }
+        
         .dropdown-email {
-          font-size: 11px; color: rgba(255,255,255,0.35);
+          font-size: 11px;
           margin-top: 2px; word-break: break-all;
+          transition: color 0.3s;
         }
+        .light-mode .dropdown-email { color: rgba(0,0,0,0.35); }
+        .dark-mode .dropdown-email { color: rgba(255,255,255,0.35); }
+        
         .dropdown-id {
           display: inline-flex; align-items: center; gap: 4px;
           margin-top: 6px; padding: 2px 8px;
+          border-radius: 99px;
+          font-size: 10px;
+          letter-spacing: 0.04em;
+          transition: all 0.3s;
+        }
+        .light-mode .dropdown-id {
+          background: rgba(0,0,0,0.05);
+          border: 1px solid rgba(0,0,0,0.08);
+          color: rgba(0,0,0,0.4);
+        }
+        .dark-mode .dropdown-id {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 99px;
-          font-size: 10px; color: rgba(255,255,255,0.4);
-          letter-spacing: 0.04em;
+          color: rgba(255,255,255,0.4);
         }
 
         .dropdown-links { padding: 6px; }
@@ -243,38 +308,59 @@ export default function Navbar({ user, onLogout }) {
           display: flex; align-items: center; gap: 10px;
           padding: 9px 10px; border-radius: 9px;
           font-size: 13px; font-weight: 500;
-          color: rgba(255,255,255,0.6);
           text-decoration: none;
-          transition: background 0.15s, color 0.15s;
+          transition: all 0.15s;
           cursor: pointer; border: none; background: none;
           width: 100%; text-align: left; font-family: 'DM Sans', sans-serif;
         }
-        .dropdown-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .light-mode .dropdown-link { color: rgba(0,0,0,0.6); }
+        .dark-mode .dropdown-link { color: rgba(255,255,255,0.6); }
+        
+        .light-mode .dropdown-link:hover { background: rgba(0,0,0,0.05); color: #1a1a2e; }
+        .dark-mode .dropdown-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        
         .dropdown-link.danger { color: #fc8181; }
-        .dropdown-link.danger:hover { background: rgba(210,16,52,0.1); color: #ff6b6b; }
+        .light-mode .dropdown-link.danger:hover { background: rgba(210,16,52,0.08); color: #dc3545; }
+        .dark-mode .dropdown-link.danger:hover { background: rgba(210,16,52,0.1); color: #ff6b6b; }
+        
         .dropdown-link-icon { font-size: 15px; width: 20px; text-align: center; }
 
-        .dropdown-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 6px; }
+        .dropdown-divider {
+          height: 1px;
+          margin: 4px 6px;
+          transition: background 0.3s;
+        }
+        .light-mode .dropdown-divider { background: rgba(0,0,0,0.06); }
+        .dark-mode .dropdown-divider { background: rgba(255,255,255,0.06); }
 
         /* ── Mobile hamburger ── */
         .hamburger {
           display: none;
           flex-direction: column; justify-content: center;
           gap: 5px; width: 36px; height: 36px;
+          border-radius: 9px; cursor: pointer; padding: 8px;
+          transition: all 0.2s;
+        }
+        .light-mode .hamburger {
+          background: rgba(0,0,0,0.04);
+          border: 1px solid rgba(0,0,0,0.1);
+        }
+        .dark-mode .hamburger {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 9px; cursor: pointer; padding: 8px;
-          transition: background 0.2s;
         }
-        .hamburger:hover { background: rgba(255,255,255,0.09); }
+        .light-mode .hamburger:hover { background: rgba(0,0,0,0.08); }
+        .dark-mode .hamburger:hover { background: rgba(255,255,255,0.09); }
         @media (max-width: 640px) { .hamburger { display: flex; } }
 
         .ham-bar {
           width: 100%; height: 1.5px;
-          background: rgba(255,255,255,0.7); border-radius: 99px;
+          border-radius: 99px;
           transition: transform 0.25s, opacity 0.25s;
           transform-origin: center;
         }
+        .light-mode .ham-bar { background: rgba(0,0,0,0.7); }
+        .dark-mode .ham-bar { background: rgba(255,255,255,0.7); }
         .hamburger.open .ham-bar:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
         .hamburger.open .ham-bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
         .hamburger.open .ham-bar:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
@@ -283,10 +369,16 @@ export default function Navbar({ user, onLogout }) {
         .mobile-drawer {
           display: none;
           flex-direction: column;
-          border-top: 1px solid rgba(255,255,255,0.06);
           padding: 10px;
-          background: rgba(8,8,8,0.98);
           animation: slideDown 0.25s ease;
+        }
+        .light-mode .mobile-drawer {
+          background: rgba(255,255,255,0.98);
+          border-top: 1px solid rgba(0,0,0,0.06);
+        }
+        .dark-mode .mobile-drawer {
+          background: rgba(8,8,8,0.98);
+          border-top: 1px solid rgba(255,255,255,0.06);
         }
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-8px); }
@@ -297,9 +389,12 @@ export default function Navbar({ user, onLogout }) {
         .mobile-user-header {
           display: flex; align-items: center; gap: 10px;
           padding: 10px 10px 14px;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
           margin-bottom: 6px;
+          transition: border-color 0.3s;
         }
+        .light-mode .mobile-user-header { border-bottom: 1px solid rgba(0,0,0,0.06); }
+        .dark-mode .mobile-user-header { border-bottom: 1px solid rgba(255,255,255,0.06); }
+        
         .mobile-avatar {
           width: 38px; height: 38px; border-radius: 50%;
           background: linear-gradient(135deg, #d21034, #007a33);
@@ -307,19 +402,41 @@ export default function Navbar({ user, onLogout }) {
           font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #fff;
           flex-shrink: 0;
         }
-        .mobile-user-name { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #fff; }
-        .mobile-user-email { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+        .mobile-user-name {
+          font-family: 'Sora', sans-serif;
+          font-size: 14px; font-weight: 700;
+          transition: color 0.3s;
+        }
+        .light-mode .mobile-user-name { color: #1a1a2e; }
+        .dark-mode .mobile-user-name { color: #fff; }
+        
+        .mobile-user-email {
+          font-size: 11px;
+          margin-top: 1px;
+          transition: color 0.3s;
+        }
+        .light-mode .mobile-user-email { color: rgba(0,0,0,0.35); }
+        .dark-mode .mobile-user-email { color: rgba(255,255,255,0.35); }
 
         .mobile-nav-link {
           display: flex; align-items: center; gap: 10px;
           padding: 11px 12px; border-radius: 10px;
           font-size: 14px; font-weight: 500;
-          color: rgba(255,255,255,0.55);
           text-decoration: none;
-          transition: background 0.15s, color 0.15s;
+          transition: all 0.15s;
         }
-        .mobile-nav-link:hover, .mobile-nav-link.active {
-          background: rgba(255,255,255,0.07); color: #fff;
+        .light-mode .mobile-nav-link { color: rgba(0,0,0,0.55); }
+        .dark-mode .mobile-nav-link { color: rgba(255,255,255,0.55); }
+        
+        .light-mode .mobile-nav-link:hover,
+        .light-mode .mobile-nav-link.active {
+          background: rgba(0,0,0,0.07);
+          color: #1a1a2e;
+        }
+        .dark-mode .mobile-nav-link:hover,
+        .dark-mode .mobile-nav-link.active {
+          background: rgba(255,255,255,0.07);
+          color: #fff;
         }
         .mobile-nav-link.active { border-left: 2px solid #d21034; padding-left: 10px; }
         .mobile-nav-icon { font-size: 16px; width: 22px; text-align: center; }
@@ -333,7 +450,8 @@ export default function Navbar({ user, onLogout }) {
           transition: background 0.15s;
           margin-top: 4px;
         }
-        .mobile-logout:hover { background: rgba(210,16,52,0.1); }
+        .light-mode .mobile-logout:hover { background: rgba(210,16,52,0.08); }
+        .dark-mode .mobile-logout:hover { background: rgba(210,16,52,0.1); }
 
         /* ── Logout confirm modal ── */
         .logout-overlay {
@@ -344,26 +462,58 @@ export default function Navbar({ user, onLogout }) {
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .logout-card {
-          background: #151515;
-          border: 1px solid rgba(255,255,255,0.1);
           border-radius: 18px; overflow: hidden;
           max-width: 340px; width: 100%;
           animation: popIn 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+        }
+        .light-mode .logout-card {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.1);
+        }
+        .dark-mode .logout-card {
+          background: #16213e;
+          border: 1px solid rgba(255,255,255,0.1);
         }
         @keyframes popIn { from { opacity:0; transform:scale(0.88); } to { opacity:1; transform:none; } }
         .logout-stripe { height: 3px; background: linear-gradient(90deg,#000,#d21034,#007a33); }
         .logout-inner { padding: 1.75rem; text-align: center; }
         .logout-icon { font-size: 32px; margin-bottom: 10px; }
-        .logout-title { font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 6px; }
-        .logout-sub { font-size: 13px; color: rgba(255,255,255,0.35); margin-bottom: 1.5rem; line-height: 1.6; }
+        .logout-title {
+          font-family: 'Sora', sans-serif;
+          font-size: 17px; font-weight: 700;
+          transition: color 0.3s;
+        }
+        .light-mode .logout-title { color: #1a1a2e; }
+        .dark-mode .logout-title { color: #fff; }
+        
+        .logout-sub {
+          font-size: 13px;
+          margin-bottom: 1.5rem; line-height: 1.6;
+          transition: color 0.3s;
+        }
+        .light-mode .logout-sub { color: rgba(0,0,0,0.35); }
+        .dark-mode .logout-sub { color: rgba(255,255,255,0.35); }
+        
         .logout-actions { display: flex; gap: 10px; }
         .logout-cancel {
           flex: 1; padding: 10px; border-radius: 9px; cursor: pointer;
-          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-          color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif;
-          font-size: 13px; font-weight: 500; transition: background 0.2s;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 13px; font-weight: 500;
+          transition: all 0.2s;
         }
-        .logout-cancel:hover { background: rgba(255,255,255,0.09); }
+        .light-mode .logout-cancel {
+          background: rgba(0,0,0,0.05);
+          border: 1px solid rgba(0,0,0,0.1);
+          color: rgba(0,0,0,0.6);
+        }
+        .dark-mode .logout-cancel {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.6);
+        }
+        .light-mode .logout-cancel:hover { background: rgba(0,0,0,0.09); }
+        .dark-mode .logout-cancel:hover { background: rgba(255,255,255,0.09); }
+        
         .logout-confirm {
           flex: 1; padding: 10px; border-radius: 9px; cursor: pointer;
           background: #d21034; border: none; color: #fff;
@@ -391,7 +541,7 @@ export default function Navbar({ user, onLogout }) {
         </div>
       )}
 
-      <nav className={`navbar ${scrolled ? "scrolled" : "transparent"}`} ref={menuRef}>
+      <nav className={`navbar ${isDark ? 'dark-mode' : 'light-mode'} ${scrolled ? "scrolled" : ""}`} ref={menuRef}>
         <div className="navbar-stripe" />
 
         <div className="navbar-inner">
@@ -413,14 +563,15 @@ export default function Navbar({ user, onLogout }) {
             </Link>
           </div>
 
-          {/* Right side: user dropdown + hamburger */}
+          {/* Right side: user dropdown + hamburger + theme toggle */}
           <div className="navbar-right">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* Desktop user dropdown */}
             <div className="user-menu" style={{ display: "none" }}
               ref={(el) => { if (el) el.style.display = window.innerWidth > 640 ? "block" : "none"; }}
-            >
-              {/* Use CSS to show/hide */}
-            </div>
+            />
 
             {/* Desktop: always show user btn via media query workaround */}
             <div style={{ display: "flex" }} className="desktop-user">
@@ -504,7 +655,7 @@ export default function Navbar({ user, onLogout }) {
               <span className="mobile-nav-icon">📊</span> Results
             </Link>
 
-            <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
+            <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", margin: "6px 0" }} />
 
             <button className="mobile-logout" onClick={() => { setMenuOpen(false); setShowLogoutConfirm(true); }}>
               <span className="mobile-nav-icon">🚪</span> Sign out

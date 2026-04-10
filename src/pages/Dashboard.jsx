@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import API from "../api";
 import Navbar from "../components/Navbar";
+import { useTheme } from "../context/ThemeContext";
+import ThemeToggle from "../components/ThemeToggle";
 
 const POSITION_ACCENTS = {
   Governor: { color: "#3b82f6", bg: "rgba(59,130,246,0.08)", border: "rgba(59,130,246,0.25)", label: "GOV" },
@@ -12,22 +14,25 @@ const DEFAULT_ACCENT = { color: "#888", bg: "rgba(255,255,255,0.04)", border: "r
 
 function CandidateImage({ src, alt, size = 80 }) {
   const [loaded, setLoaded] = useState(false);
+  const { theme } = useTheme();
+  
   return (
     <div style={{ width: size, height: size, borderRadius: "50%", position: "relative", flexShrink: 0 }}>
       {!loaded && (
         <div style={{
           position: "absolute", inset: 0, borderRadius: "50%",
-          background: "rgba(255,255,255,0.06)", animation: "shimmer 1.5s infinite"
+          background: theme === 'dark' ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", 
+          animation: "shimmer 1.5s infinite"
         }} />
       )}
       <img
         src={src}
         alt={alt}
         onLoad={() => setLoaded(true)}
-        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(alt)}&background=1a1a1a&color=888&size=128`; }}
+        onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(alt)}&background=${theme === 'dark' ? '1a1a2e' : 'e9edf2'}&color=${theme === 'dark' ? '888' : '666'}&size=128`; }}
         style={{
           width: size, height: size, borderRadius: "50%", objectFit: "cover",
-          border: "2px solid rgba(255,255,255,0.1)",
+          border: theme === 'dark' ? "2px solid rgba(255,255,255,0.1)" : "2px solid rgba(0,0,0,0.1)",
           opacity: loaded ? 1 : 0, transition: "opacity 0.4s ease"
         }}
       />
@@ -36,21 +41,26 @@ function CandidateImage({ src, alt, size = 80 }) {
 }
 
 function SkeletonCard() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  
   return (
     <div style={{
-      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+      background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
+      border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.08)",
       borderRadius: 16, padding: "1.5rem", display: "flex", flexDirection: "column",
       alignItems: "center", gap: 12
     }}>
-      <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.07)", animation: "shimmer 1.5s infinite" }} />
-      <div style={{ width: "60%", height: 14, borderRadius: 8, background: "rgba(255,255,255,0.07)", animation: "shimmer 1.5s infinite" }} />
-      <div style={{ width: "40%", height: 11, borderRadius: 8, background: "rgba(255,255,255,0.05)", animation: "shimmer 1.5s infinite" }} />
-      <div style={{ width: "100%", height: 38, borderRadius: 10, background: "rgba(255,255,255,0.06)", animation: "shimmer 1.5s infinite", marginTop: 4 }} />
+      <div style={{ width: 80, height: 80, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)", animation: "shimmer 1.5s infinite" }} />
+      <div style={{ width: "60%", height: 14, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)", animation: "shimmer 1.5s infinite" }} />
+      <div style={{ width: "40%", height: 11, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", animation: "shimmer 1.5s infinite" }} />
+      <div style={{ width: "100%", height: 38, borderRadius: 10, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", animation: "shimmer 1.5s infinite", marginTop: 4 }} />
     </div>
   );
 }
 
 export default function Dashboard({ user: propUser }) {
+  const { theme } = useTheme();
   const [user] = useState(() => propUser || JSON.parse(localStorage.getItem("user")));
   const [elections, setElections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,8 +120,10 @@ export default function Dashboard({ user: propUser }) {
   const votedPositions = elections.flatMap((e) => e.positions).filter((p) => p.has_voted).length;
   const progressPct = totalPositions > 0 ? Math.round((votedPositions / totalPositions) * 100) : 0;
 
+  const isDark = theme === 'dark';
+
   if (!user) return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.4)", fontFamily: "DM Sans, sans-serif" }}>
+    <div className={`min-h-screen flex items-center justify-center font-sans ${isDark ? 'bg-gray-900 text-white/40' : 'bg-gray-50 text-gray-500'}`}>
       Please log in to access the dashboard.
     </div>
   );
@@ -121,16 +133,24 @@ export default function Dashboard({ user: propUser }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0a0a0a; }
 
         .dash-root {
           min-height: 100vh;
-          background: #0a0a0a;
-          background-image:
-            radial-gradient(ellipse at 10% 20%, rgba(0,122,51,0.05) 0%, transparent 50%),
-            radial-gradient(ellipse at 90% 80%, rgba(210,16,52,0.04) 0%, transparent 50%);
           font-family: 'DM Sans', sans-serif;
           padding-bottom: 4rem;
+        }
+        
+        /* Light mode */
+        .dash-root.light-mode {
+          background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+        }
+        
+        /* Dark mode */
+        .dash-root.dark-mode {
+          background: #1a1a2e;
+          background-image:
+            radial-gradient(ellipse at 10% 20%, rgba(0,122,51,0.08) 0%, transparent 50%),
+            radial-gradient(ellipse at 90% 80%, rgba(210,16,52,0.06) 0%, transparent 50%);
         }
 
         .dash-inner {
@@ -154,48 +174,81 @@ export default function Dashboard({ user: propUser }) {
           display: flex; align-items: center; justify-content: space-between;
           flex-wrap: wrap; gap: 10px;
         }
+        .light-mode .dash-title { color: #1a1a2e; }
+        .dark-mode .dash-title { color: #fff; }
         .dash-title {
           font-family: 'Sora', sans-serif;
-          font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.4px;
+          font-size: 26px; font-weight: 700; letter-spacing: -0.4px;
         }
-        .dash-subtitle { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+        .light-mode .dash-subtitle { color: rgba(0,0,0,0.5); }
+        .dark-mode .dash-subtitle { color: rgba(255,255,255,0.35); }
+        .dash-subtitle { font-size: 13px; margin-top: 3px; }
 
         /* ── Ballot progress bar ── */
         .ballot-progress {
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
           border-radius: 14px;
           padding: 1rem 1.25rem;
           display: flex; align-items: center; gap: 1rem;
         }
-        .bp-labels { flex: 1; }
-        .bp-title { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 6px; }
-        .bp-track { height: 6px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; }
+        .light-mode .ballot-progress {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.08);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .dark-mode .ballot-progress {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+        .light-mode .bp-title { color: rgba(0,0,0,0.5); }
+        .dark-mode .bp-title { color: rgba(255,255,255,0.35); }
+        .bp-title { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+        .light-mode .bp-track { background: rgba(0,0,0,0.08); }
+        .dark-mode .bp-track { background: rgba(255,255,255,0.07); }
+        .bp-track { height: 6px; border-radius: 99px; overflow: hidden; }
         .bp-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #d21034, #007a33); transition: width 0.6s ease; }
-        .bp-count { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; color: #fff; white-space: nowrap; }
-        .bp-count span { font-size: 13px; color: rgba(255,255,255,0.3); font-weight: 400; }
+        .light-mode .bp-count { color: #1a1a2e; }
+        .dark-mode .bp-count { color: #fff; }
+        .bp-count { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; white-space: nowrap; }
+        .light-mode .bp-count span { color: rgba(0,0,0,0.4); }
+        .dark-mode .bp-count span { color: rgba(255,255,255,0.3); }
+        .bp-count span { font-size: 13px; font-weight: 400; }
 
         /* ── Election section ── */
         .election-section {
           margin-bottom: 2rem;
-          background: rgba(255,255,255,0.02);
-          border: 1px solid rgba(255,255,255,0.07);
           border-radius: 18px;
           overflow: hidden;
         }
+        .light-mode .election-section {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.08);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .dark-mode .election-section {
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.07);
+        }
+        .light-mode .election-head { border-bottom-color: rgba(0,0,0,0.06); }
+        .dark-mode .election-head { border-bottom-color: rgba(255,255,255,0.06); }
         .election-head {
           padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
+          border-bottom: 1px solid;
           display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
         }
+        .light-mode .election-title { color: #1a1a2e; }
+        .dark-mode .election-title { color: #fff; }
         .election-title {
           font-family: 'Sora', sans-serif;
-          font-size: 16px; font-weight: 700; color: #fff;
+          font-size: 16px; font-weight: 700;
         }
-        .election-desc { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+        .light-mode .election-desc { color: rgba(0,0,0,0.5); }
+        .dark-mode .election-desc { color: rgba(255,255,255,0.35); }
+        .election-desc { font-size: 12px; margin-top: 3px; }
 
         /* ── Position group ── */
-        .position-group { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .light-mode .position-group { border-bottom-color: rgba(0,0,0,0.05); }
+        .dark-mode .position-group { border-bottom-color: rgba(255,255,255,0.05); }
+        .position-group { padding: 1.25rem 1.5rem; border-bottom: 1px solid; }
         .position-group:last-child { border-bottom: none; }
         .position-label-row {
           display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;
@@ -205,9 +258,11 @@ export default function Dashboard({ user: propUser }) {
           font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
           border: 1px solid;
         }
+        .light-mode .position-title { color: #1a1a2e; }
+        .dark-mode .position-title { color: #fff; }
         .position-title {
           font-family: 'Sora', sans-serif;
-          font-size: 15px; font-weight: 600; color: #fff;
+          font-size: 15px; font-weight: 600;
         }
         .voted-chip {
           display: inline-flex; align-items: center; gap: 4px;
@@ -226,8 +281,6 @@ export default function Dashboard({ user: propUser }) {
 
         /* ── Candidate card ── */
         .candidate-card {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
           border-radius: 16px;
           padding: 1.25rem 1rem;
           display: flex; flex-direction: column; align-items: center;
@@ -236,6 +289,14 @@ export default function Dashboard({ user: propUser }) {
           cursor: default;
           position: relative;
           overflow: hidden;
+        }
+        .light-mode .candidate-card {
+          background: rgba(0,0,0,0.02);
+          border: 1px solid rgba(0,0,0,0.08);
+        }
+        .dark-mode .candidate-card {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
         }
         .candidate-card::before {
           content: '';
@@ -248,13 +309,17 @@ export default function Dashboard({ user: propUser }) {
         }
         .candidate-card.hoverable:hover::before { opacity: 1; }
 
+        .light-mode .candidate-name { color: #1a1a2e; }
+        .dark-mode .candidate-name { color: #fff; }
         .candidate-name {
           font-family: 'Sora', sans-serif;
-          font-size: 14px; font-weight: 600; color: #fff; line-height: 1.3;
+          font-size: 14px; font-weight: 600; line-height: 1.3;
         }
+        .light-mode .candidate-party { color: rgba(0,0,0,0.5); }
+        .dark-mode .candidate-party { color: rgba(255,255,255,0.4); }
         .candidate-party {
           display: flex; align-items: center; justify-content: center; gap: 5px;
-          font-size: 12px; color: rgba(255,255,255,0.4);
+          font-size: 12px;
         }
         .candidate-party img { width: 16px; height: 16px; object-fit: contain; }
 
@@ -280,30 +345,52 @@ export default function Dashboard({ user: propUser }) {
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal-card {
-          background: #151515;
-          border: 1px solid rgba(255,255,255,0.1);
           border-radius: 20px;
           max-width: 400px; width: 100%;
           overflow: hidden;
           animation: popIn 0.35s cubic-bezier(0.175,0.885,0.32,1.275);
         }
+        .light-mode .modal-card {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.1);
+        }
+        .dark-mode .modal-card {
+          background: #16213e;
+          border: 1px solid rgba(255,255,255,0.1);
+        }
         @keyframes popIn { from { opacity:0; transform:scale(0.85) translateY(16px); } to { opacity:1; transform:none; } }
         .modal-stripe { height: 4px; background: linear-gradient(90deg,#000 0%,#d21034 50%,#007a33 100%); }
         .modal-inner { padding: 2rem; text-align: center; }
+        .light-mode .modal-title { color: #1a1a2e; }
+        .dark-mode .modal-title { color: #fff; }
         .modal-title {
           font-family: 'Sora', sans-serif;
-          font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 1.5rem;
+          font-size: 18px; font-weight: 700; margin-bottom: 1.5rem;
+        }
+        .light-mode .modal-candidate-row {
+          background: rgba(0,0,0,0.02);
+          border: 1px solid rgba(0,0,0,0.08);
+        }
+        .dark-mode .modal-candidate-row {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
         }
         .modal-candidate-row {
           display: flex; flex-direction: column; align-items: center; gap: 10px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
           border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem;
         }
-        .modal-candidate-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: #fff; }
-        .modal-candidate-party { font-size: 13px; color: rgba(255,255,255,0.4); }
-        .modal-confirm-text { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.6; margin-bottom: 1.5rem; }
-        .modal-confirm-text strong { color: rgba(255,255,255,0.7); font-weight: 500; }
+        .light-mode .modal-candidate-name { color: #1a1a2e; }
+        .dark-mode .modal-candidate-name { color: #fff; }
+        .modal-candidate-name { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; }
+        .light-mode .modal-candidate-party { color: rgba(0,0,0,0.5); }
+        .dark-mode .modal-candidate-party { color: rgba(255,255,255,0.4); }
+        .modal-candidate-party { font-size: 13px; }
+        .light-mode .modal-confirm-text { color: rgba(0,0,0,0.5); }
+        .dark-mode .modal-confirm-text { color: rgba(255,255,255,0.35); }
+        .modal-confirm-text { font-size: 13px; line-height: 1.6; margin-bottom: 1.5rem; }
+        .light-mode .modal-confirm-text strong { color: rgba(0,0,0,0.7); }
+        .dark-mode .modal-confirm-text strong { color: rgba(255,255,255,0.7); }
+        .modal-confirm-text strong { font-weight: 500; }
 
         .modal-error {
           display: flex; align-items: center; gap: 7px;
@@ -326,13 +413,23 @@ export default function Dashboard({ user: propUser }) {
         .modal-success-text { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 600; color: #4ade80; }
 
         .modal-actions { display: flex; gap: 10px; }
+        .light-mode .modal-cancel {
+          background: rgba(0,0,0,0.05);
+          border: 1px solid rgba(0,0,0,0.1);
+          color: rgba(0,0,0,0.6);
+        }
+        .dark-mode .modal-cancel {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.6);
+        }
         .modal-cancel {
           flex: 1; padding: 11px; border-radius: 10px; cursor: pointer;
-          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-          color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-size: 14px; font-weight: 500; transition: background 0.2s;
         }
-        .modal-cancel:hover { background: rgba(255,255,255,0.09); }
+        .light-mode .modal-cancel:hover { background: rgba(0,0,0,0.09); }
+        .dark-mode .modal-cancel:hover { background: rgba(255,255,255,0.09); }
         .modal-confirm {
           flex: 1; padding: 11px; border-radius: 10px; cursor: pointer;
           border: none; color: #fff;
@@ -351,10 +448,14 @@ export default function Dashboard({ user: propUser }) {
 
         /* ── Warning banner (all voted) ── */
         .all-voted-banner {
-          text-align: center; padding: 3rem 1rem; color: rgba(255,255,255,0.3);
+          text-align: center; padding: 3rem 1rem;
         }
+        .light-mode .all-voted-banner { color: rgba(0,0,0,0.4); }
+        .dark-mode .all-voted-banner { color: rgba(255,255,255,0.3); }
         .all-voted-icon { font-size: 40px; margin-bottom: 10px; }
-        .all-voted-title { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+        .light-mode .all-voted-title { color: #1a1a2e; }
+        .dark-mode .all-voted-title { color: #fff; }
+        .all-voted-title { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 6px; }
 
         @media (max-width: 600px) {
           .candidates-grid { grid-template-columns: 1fr 1fr; }
@@ -367,7 +468,12 @@ export default function Dashboard({ user: propUser }) {
 
       <Navbar user={user} />
 
-      <div className="dash-root">
+      <div className={`dash-root ${isDark ? 'dark-mode' : 'light-mode'}`}>
+        {/* Theme Toggle Button */}
+        <div className="fixed top-20 right-4 z-50">
+          <ThemeToggle />
+        </div>
+
         <div className={`dash-inner${mounted ? " mounted" : ""}`}>
 
           {/* Page header */}
@@ -405,9 +511,9 @@ export default function Dashboard({ user: propUser }) {
           {loading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {[1, 2].map((s) => (
-                <div key={s} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 18, overflow: "hidden" }}>
-                  <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                    <div style={{ width: "35%", height: 16, borderRadius: 8, background: "rgba(255,255,255,0.07)", animation: "shimmer 1.5s infinite" }} />
+                <div key={s} style={{ background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.08)", borderRadius: 18, overflow: "hidden" }}>
+                  <div style={{ padding: "1.25rem 1.5rem", borderBottom: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)" }}>
+                    <div style={{ width: "35%", height: 16, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)", animation: "shimmer 1.5s infinite" }} />
                   </div>
                   <div style={{ padding: "1.25rem 1.5rem" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 }}>
@@ -462,7 +568,6 @@ export default function Dashboard({ user: propUser }) {
                           onMouseEnter={() => position.can_vote && setHoveredCard(candidate.id)}
                           onMouseLeave={() => setHoveredCard(null)}
                         >
-                          {/* Accent top bar on hover */}
                           <div style={{
                             position: "absolute", top: 0, left: 0, right: 0, height: 3,
                             background: accent.color, borderRadius: "16px 16px 0 0",
@@ -526,7 +631,7 @@ export default function Dashboard({ user: propUser }) {
                 <div className="modal-success">
                   <div className="modal-success-icon">✓</div>
                   <div className="modal-success-text">Vote recorded!</div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)" }}>
+                  <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.5)" }}>
                     You voted for {voteSuccess}
                   </div>
                 </div>

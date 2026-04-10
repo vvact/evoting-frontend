@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../api";
 import { useLoader } from "../contexts/LoaderContext";
+import { useTheme } from "../context/ThemeContext";
+import ThemeToggle from "../components/ThemeToggle";
 
 const FIELDS = [
   { name: "first_name",       label: "First Name",       type: "text",     col: "half", placeholder: "e.g. Amara",          autocomplete: "given-name" },
@@ -29,6 +31,7 @@ const strengthColor = ["", "#e53e3e", "#dd6b20", "#38a169", "#2f855a"];
 export default function Register({ setVerifyEmail }) {
   const navigate = useNavigate();
   const { showLoader, hideLoader } = useLoader();
+  const { theme } = useTheme();
   const firstInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -74,7 +77,6 @@ export default function Register({ setVerifyEmail }) {
     if (touched[name]) {
       const err = validateField(name, newValue, newData);
       setErrors((prev) => ({ ...prev, [name]: err }));
-      // Also revalidate confirm_password if password changes
       if (name === "password" && touched["confirm_password"]) {
         setErrors((prev) => ({ ...prev, confirm_password: validateField("confirm_password", newData.confirm_password, newData) }));
       }
@@ -120,7 +122,7 @@ export default function Register({ setVerifyEmail }) {
   const allValid = progressPct === 100;
 
   return (
-    <div className="register-page">
+    <div className={`register-page ${theme === 'dark' ? 'dark-mode' : 'light-mode'}`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500&display=swap');
 
@@ -132,26 +134,49 @@ export default function Register({ setVerifyEmail }) {
           align-items: center;
           justify-content: center;
           padding: 2rem 1rem;
-          background: #0a0a0a;
-          background-image:
+          position: relative;
+          font-family: 'DM Sans', sans-serif;
+        }
+
+        /* Light mode background */
+        .register-page.light-mode {
+          background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+        }
+
+        /* Dark mode background - lighter than before */
+        .register-page.dark-mode {
+          background: #1a1a2e;
+          background-image: 
             radial-gradient(ellipse at 20% 50%, rgba(0,122,51,0.08) 0%, transparent 60%),
             radial-gradient(ellipse at 80% 20%, rgba(210,16,52,0.06) 0%, transparent 50%);
-          font-family: 'DM Sans', sans-serif;
         }
 
         .register-card {
           width: 100%;
           max-width: 900px;
-          background: #111;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px;
-          overflow: hidden;
           display: grid;
           grid-template-columns: 1fr 380px;
           opacity: 0;
           transform: translateY(24px);
           transition: opacity 0.5s ease, transform 0.5s ease;
+          border-radius: 24px;
+          overflow: hidden;
+          box-shadow: 0 20px 35px -10px rgba(0,0,0,0.1);
         }
+        
+        /* Light mode card */
+        .light-mode .register-card {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.08);
+        }
+        
+        /* Dark mode card */
+        .dark-mode .register-card {
+          background: #16213e;
+          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: 0 20px 35px -10px rgba(0,0,0,0.3);
+        }
+        
         .register-card.mounted { opacity: 1; transform: translateY(0); }
 
         @media (max-width: 768px) {
@@ -176,18 +201,12 @@ export default function Register({ setVerifyEmail }) {
         }
         .register-brand-flag { font-size: 28px; }
         .register-brand-text { font-family: 'Sora', sans-serif; }
-        .register-brand-text h1 {
-          font-size: 20px;
-          font-weight: 700;
-          color: #fff;
-          letter-spacing: -0.3px;
-          line-height: 1;
-        }
-        .register-brand-text p {
-          font-size: 12px;
-          color: rgba(255,255,255,0.4);
-          margin-top: 2px;
-        }
+        
+        .light-mode .register-brand-text h1 { color: #1a1a2e; }
+        .dark-mode .register-brand-text h1 { color: #fff; }
+        
+        .light-mode .register-brand-text p { color: rgba(0,0,0,0.5); }
+        .dark-mode .register-brand-text p { color: rgba(255,255,255,0.4); }
 
         .progress-section { margin-bottom: 0.5rem; }
         .progress-labels {
@@ -196,21 +215,21 @@ export default function Register({ setVerifyEmail }) {
           align-items: center;
           margin-bottom: 6px;
         }
-        .progress-labels span {
-          font-size: 12px;
-          color: rgba(255,255,255,0.45);
-        }
-        .progress-labels strong {
-          font-size: 12px;
-          font-weight: 600;
-          color: #fff;
-        }
+        
+        .light-mode .progress-labels span { color: rgba(0,0,0,0.5); }
+        .dark-mode .progress-labels span { color: rgba(255,255,255,0.45); }
+        
+        .light-mode .progress-labels strong { color: #1a1a2e; }
+        .dark-mode .progress-labels strong { color: #fff; }
+        
         .progress-track {
           height: 4px;
-          background: rgba(255,255,255,0.08);
           border-radius: 99px;
           overflow: hidden;
         }
+        .light-mode .progress-track { background: rgba(0,0,0,0.08); }
+        .dark-mode .progress-track { background: rgba(255,255,255,0.08); }
+        
         .progress-fill {
           height: 100%;
           border-radius: 99px;
@@ -232,31 +251,55 @@ export default function Register({ setVerifyEmail }) {
           font-weight: 600;
           letter-spacing: 0.06em;
           text-transform: uppercase;
-          color: rgba(255,255,255,0.4);
           padding-left: 2px;
         }
+        .light-mode .field-label { color: rgba(0,0,0,0.6); }
+        .dark-mode .field-label { color: rgba(255,255,255,0.4); }
 
         .field-input-wrap { position: relative; }
         .field-input {
           width: 100%;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 10px;
+          border-radius: 12px;
           padding: 11px 40px 11px 14px;
-          color: #fff;
           font-family: 'DM Sans', sans-serif;
           font-size: 14px;
           outline: none;
-          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+          transition: all 0.2s;
         }
-        .field-input::placeholder { color: rgba(255,255,255,0.2); }
+        
+        .light-mode .field-input {
+          background: #f8f9fa;
+          border: 1px solid #e0e4e8;
+          color: #1a1a2e;
+        }
+        
+        .dark-mode .field-input {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: #fff;
+        }
+        
+        .light-mode .field-input::placeholder { color: #adb5bd; }
+        .dark-mode .field-input::placeholder { color: rgba(255,255,255,0.2); }
+        
         .field-input:focus {
-          border-color: rgba(255,255,255,0.3);
-          background: rgba(255,255,255,0.07);
-          box-shadow: 0 0 0 3px rgba(0,122,51,0.15);
+          .light-mode & {
+            border-color: #007a33;
+            box-shadow: 0 0 0 3px rgba(0,122,51,0.1);
+            background: #ffffff;
+          }
+          .dark-mode & {
+            border-color: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.07);
+            box-shadow: 0 0 0 3px rgba(0,122,51,0.15);
+          }
         }
-        .field-input.is-valid { border-color: rgba(0,180,80,0.5); }
-        .field-input.is-error { border-color: rgba(210,16,52,0.6); box-shadow: 0 0 0 3px rgba(210,16,52,0.08); }
+        
+        .light-mode .field-input.is-valid { border-color: #28a745; }
+        .dark-mode .field-input.is-valid { border-color: rgba(0,180,80,0.5); }
+        
+        .light-mode .field-input.is-error { border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,0.08); }
+        .dark-mode .field-input.is-error { border-color: rgba(210,16,52,0.6); box-shadow: 0 0 0 3px rgba(210,16,52,0.08); }
 
         .field-status-icon {
           position: absolute;
@@ -267,6 +310,7 @@ export default function Register({ setVerifyEmail }) {
           pointer-events: none;
           transition: opacity 0.2s;
         }
+        
         .field-toggle-btn {
           position: absolute;
           right: 12px;
@@ -274,23 +318,26 @@ export default function Register({ setVerifyEmail }) {
           transform: translateY(-50%);
           background: none;
           border: none;
-          color: rgba(255,255,255,0.35);
           cursor: pointer;
           padding: 2px;
           font-size: 13px;
           transition: color 0.2s;
           line-height: 1;
         }
-        .field-toggle-btn:hover { color: rgba(255,255,255,0.7); }
+        .light-mode .field-toggle-btn { color: rgba(0,0,0,0.4); }
+        .dark-mode .field-toggle-btn { color: rgba(255,255,255,0.35); }
+        .light-mode .field-toggle-btn:hover { color: rgba(0,0,0,0.7); }
+        .dark-mode .field-toggle-btn:hover { color: rgba(255,255,255,0.7); }
 
         .field-error {
           font-size: 11px;
-          color: #fc6b6b;
-          padding-left: 2px;
           display: flex;
           align-items: center;
           gap: 4px;
+          padding-left: 2px;
         }
+        .light-mode .field-error { color: #dc3545; }
+        .dark-mode .field-error { color: #fc6b6b; }
 
         /* ---- STRENGTH METER ---- */
         .strength-meter { margin-top: 6px; }
@@ -306,20 +353,29 @@ export default function Register({ setVerifyEmail }) {
           background: rgba(255,255,255,0.08);
           transition: background 0.3s;
         }
+        .light-mode .strength-bar { background: rgba(0,0,0,0.1); }
         .strength-label {
           font-size: 11px;
-          color: rgba(255,255,255,0.4);
           transition: color 0.3s;
         }
+        .light-mode .strength-label { color: rgba(0,0,0,0.5); }
+        .dark-mode .strength-label { color: rgba(255,255,255,0.4); }
 
         /* ---- ERROR BANNER ---- */
         .error-banner {
-          background: rgba(210,16,52,0.12);
-          border: 1px solid rgba(210,16,52,0.3);
-          border-radius: 10px;
+          border-radius: 12px;
           padding: 10px 14px;
           margin-bottom: 16px;
           font-size: 13px;
+        }
+        .light-mode .error-banner {
+          background: rgba(220,53,69,0.08);
+          border: 1px solid rgba(220,53,69,0.2);
+          color: #dc3545;
+        }
+        .dark-mode .error-banner {
+          background: rgba(210,16,52,0.12);
+          border: 1px solid rgba(210,16,52,0.3);
           color: #fc8181;
         }
 
@@ -328,7 +384,7 @@ export default function Register({ setVerifyEmail }) {
           width: 100%;
           padding: 13px;
           border: none;
-          border-radius: 10px;
+          border-radius: 12px;
           font-family: 'Sora', sans-serif;
           font-size: 14px;
           font-weight: 600;
@@ -365,19 +421,25 @@ export default function Register({ setVerifyEmail }) {
           animation: fadeIn 0.3s ease;
         }
         .success-card {
-          background: #111;
-          border: 1px solid rgba(0,180,80,0.3);
-          border-radius: 18px;
+          border-radius: 24px;
           padding: 2.5rem;
           max-width: 380px;
           width: 90%;
           text-align: center;
           animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
         }
+        .light-mode .success-card {
+          background: #ffffff;
+          border: 1px solid rgba(0,122,51,0.2);
+        }
+        .dark-mode .success-card {
+          background: #16213e;
+          border: 1px solid rgba(0,180,80,0.3);
+        }
+        
         .success-icon {
           width: 64px;
           height: 64px;
-          background: rgba(0,122,51,0.15);
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -385,19 +447,26 @@ export default function Register({ setVerifyEmail }) {
           margin: 0 auto 1.25rem;
           font-size: 28px;
         }
+        .light-mode .success-icon { background: rgba(0,122,51,0.1); }
+        .dark-mode .success-icon { background: rgba(0,122,51,0.15); }
+        
         .success-title {
           font-family: 'Sora', sans-serif;
           font-size: 20px;
           font-weight: 700;
-          color: #fff;
           margin-bottom: 8px;
         }
+        .light-mode .success-title { color: #1a1a2e; }
+        .dark-mode .success-title { color: #fff; }
+        
         .success-sub {
           font-size: 13px;
-          color: rgba(255,255,255,0.5);
           line-height: 1.6;
           margin-bottom: 1.5rem;
         }
+        .light-mode .success-sub { color: rgba(0,0,0,0.6); }
+        .dark-mode .success-sub { color: rgba(255,255,255,0.5); }
+        
         .success-actions { display: flex; gap: 10px; justify-content: center; }
         .success-btn-primary {
           padding: 10px 22px;
@@ -414,22 +483,28 @@ export default function Register({ setVerifyEmail }) {
         .success-btn-primary:hover { background: #006129; }
         .success-btn-secondary {
           padding: 10px 22px;
-          background: rgba(255,255,255,0.07);
-          color: rgba(255,255,255,0.7);
-          border: 1px solid rgba(255,255,255,0.12);
           border-radius: 8px;
           font-family: 'DM Sans', sans-serif;
           font-size: 13px;
           font-weight: 500;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: all 0.2s;
         }
-        .success-btn-secondary:hover { background: rgba(255,255,255,0.12); }
+        .light-mode .success-btn-secondary {
+          background: rgba(0,0,0,0.05);
+          color: rgba(0,0,0,0.7);
+          border: 1px solid rgba(0,0,0,0.1);
+        }
+        .dark-mode .success-btn-secondary {
+          background: rgba(255,255,255,0.07);
+          color: rgba(255,255,255,0.7);
+          border: 1px solid rgba(255,255,255,0.12);
+        }
+        .light-mode .success-btn-secondary:hover { background: rgba(0,0,0,0.1); }
+        .dark-mode .success-btn-secondary:hover { background: rgba(255,255,255,0.12); }
 
         /* ---- RIGHT SIDE PANEL ---- */
         .register-side {
-          background: #0e0e0e;
-          border-left: 1px solid rgba(255,255,255,0.06);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -438,6 +513,14 @@ export default function Register({ setVerifyEmail }) {
           text-align: center;
           position: relative;
           overflow: hidden;
+        }
+        .light-mode .register-side {
+          background: #f8f9fa;
+          border-left: 1px solid rgba(0,0,0,0.06);
+        }
+        .dark-mode .register-side {
+          background: #0f1423;
+          border-left: 1px solid rgba(255,255,255,0.06);
         }
 
         .side-bg-art {
@@ -456,9 +539,10 @@ export default function Register({ setVerifyEmail }) {
           width: 7px;
           height: 7px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.1);
           transition: background 0.4s, transform 0.3s;
         }
+        .light-mode .side-dot { background: rgba(0,0,0,0.1); }
+        .dark-mode .side-dot { background: rgba(255,255,255,0.1); }
         .side-dot.active { transform: scale(1.4); }
 
         .side-avatar {
@@ -472,47 +556,69 @@ export default function Register({ setVerifyEmail }) {
           margin: 0 auto 1.25rem;
           position: relative;
           z-index: 1;
-          border: 2px solid rgba(255,255,255,0.1);
+        }
+        .light-mode .side-avatar {
+          background: rgba(0,0,0,0.04);
+          border: 2px solid rgba(0,0,0,0.08);
+        }
+        .dark-mode .side-avatar {
           background: rgba(255,255,255,0.04);
+          border: 2px solid rgba(255,255,255,0.1);
         }
 
         .side-heading {
           font-family: 'Sora', sans-serif;
           font-size: 22px;
           font-weight: 700;
-          color: #fff;
           margin-bottom: 10px;
           line-height: 1.2;
           position: relative;
           z-index: 1;
         }
+        .light-mode .side-heading { color: #1a1a2e; }
+        .dark-mode .side-heading { color: #fff; }
+        
         .side-sub {
           font-size: 13px;
-          color: rgba(255,255,255,0.4);
           line-height: 1.7;
           margin-bottom: 2rem;
           position: relative;
           z-index: 1;
         }
+        .light-mode .side-sub { color: rgba(0,0,0,0.5); }
+        .dark-mode .side-sub { color: rgba(255,255,255,0.4); }
+        
         .side-login-btn {
           display: inline-flex;
           align-items: center;
           gap: 6px;
           padding: 11px 28px;
-          background: transparent;
-          border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 10px;
-          color: #fff;
+          border-radius: 12px;
           font-family: 'DM Sans', sans-serif;
           font-size: 14px;
           font-weight: 500;
           text-decoration: none;
-          transition: background 0.2s, border-color 0.2s, transform 0.15s;
+          transition: all 0.2s;
           position: relative;
           z-index: 1;
           cursor: pointer;
         }
-        .side-login-btn:hover {
+        .light-mode .side-login-btn {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.15);
+          color: #1a1a2e;
+        }
+        .dark-mode .side-login-btn {
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.2);
+          color: #fff;
+        }
+        .light-mode .side-login-btn:hover {
+          background: rgba(0,0,0,0.05);
+          border-color: rgba(0,0,0,0.25);
+          transform: translateY(-1px);
+        }
+        .dark-mode .side-login-btn:hover {
           background: rgba(255,255,255,0.07);
           border-color: rgba(255,255,255,0.35);
           transform: translateY(-1px);
@@ -538,6 +644,11 @@ export default function Register({ setVerifyEmail }) {
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {/* Theme Toggle Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
 
       {/* ── SUCCESS OVERLAY ── */}
       {showSuccess && (
@@ -620,7 +731,6 @@ export default function Register({ setVerifyEmail }) {
                         className={`field-input${isValid ? " is-valid" : ""}${isError ? " is-error" : ""}`}
                         style={isPw ? { paddingRight: "72px" } : {}}
                       />
-                      {/* Password toggle */}
                       {isPw && (
                         <button
                           type="button"
@@ -632,12 +742,10 @@ export default function Register({ setVerifyEmail }) {
                           {showPw[name] ? "👁" : "🙈"}
                         </button>
                       )}
-                      {/* Valid / error icon */}
-                      {isValid && <span className="field-status-icon" style={{ color: "#4ade80" }}>✓</span>}
-                      {isError && !isPw && <span className="field-status-icon" style={{ color: "#fc6b6b" }}>✕</span>}
+                      {isValid && <span className="field-status-icon" style={{ color: "#28a745" }}>✓</span>}
+                      {isError && !isPw && <span className="field-status-icon" style={{ color: "#dc3545" }}>✕</span>}
                     </div>
 
-                    {/* Password strength */}
                     {name === "password" && formData.password && (
                       <div className="strength-meter">
                         <div className="strength-bars">
@@ -677,7 +785,6 @@ export default function Register({ setVerifyEmail }) {
 
         {/* ── RIGHT: SIDE PANEL ── */}
         <div className="register-side">
-          {/* Decorative background */}
           <svg className="side-bg-art" viewBox="0 0 380 600" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <circle cx="190" cy="300" r="200" fill="none" stroke="rgba(0,122,51,0.06)" strokeWidth="1"/>
             <circle cx="190" cy="300" r="150" fill="none" stroke="rgba(210,16,52,0.05)" strokeWidth="1"/>
@@ -686,7 +793,6 @@ export default function Register({ setVerifyEmail }) {
             <line x1="380" y1="0" x2="0" y2="600" stroke="rgba(255,255,255,0.03)" strokeWidth="1"/>
           </svg>
 
-          {/* Progress dots */}
           <div className="side-dots">
             {FIELDS.map(({ name }, i) => {
               const done = !validateField(name, formData[name]);
@@ -696,7 +802,6 @@ export default function Register({ setVerifyEmail }) {
             })}
           </div>
 
-          {/* Circular progress */}
           <div className="side-progress-ring">
             <svg width="100" height="100" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6"/>
